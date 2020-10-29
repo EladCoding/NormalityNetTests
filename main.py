@@ -1,4 +1,4 @@
 import tensorflow as tf
 
-def main()
+def main():
     print("main")

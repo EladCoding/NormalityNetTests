@@ -53,22 +53,35 @@ def one_dim_shapiro_wilk_loss(y_true, y_pred):
 
 
 @tf.function
+def norm_from_normal(y_true, y_pred):
+    # breakpoint()
+    dist = 0.0
+    for i in range(32):
+        rand_normal_points = tf.random.normal(shape=(1, 2), dtype=tf.float32)
+
+        diff_matrix = y_pred - rand_normal_points
+        distance_matrix = tf.norm(diff_matrix, axis=-1)
+
+        dist += tf.math.reduce_min(distance_matrix)
+
+    return dist / 64
+
+
+
+@tf.function
 def two_dim_shapiro_wilk_loss(y_true, y_pred):
     x = y_pred[:,0]
     y = y_pred[:,1]
-    # y_pred_cov = tfp.stats.covariance(y_pred, y=None, sample_axis=0, event_axis=-1, keepdims=False)
-    # y_pred_inverse_cov = tf.linalg.inv(y_pred_cov, adjoint=False)
-    # y_pred_inverse_cov_sqrtm = tf.linalg.sqrtm(y_pred_inverse_cov)
-    #
-    #
-    # y_pred_mean = tf.reduce_mean(y_pred, axis=0, keepdims=True)
-    # y_pred_normalized = y_pred - y_pred_mean
-    #
-    # Z = tf.linalg.matmul(y_pred_normalized, y_pred_inverse_cov_sqrtm)
 
-    return 0.5 * one_dim_shapiro_wilk_loss(y_true, x) + \
-           0.5 * one_dim_shapiro_wilk_loss(y_true, y) + \
-           0.0 * correlation_loss(x, y)
+    x_plus_y = tf.add(x*x, y*y)
+
+
+
+    return 0.001 * one_dim_shapiro_wilk_loss(y_true, x) + \
+           0.25 * one_dim_shapiro_wilk_loss(y_true, y)
+           # 0.25 * one_dim_shapiro_wilk_loss(y_true, x_plus_y)
+           # 0.25 * norm_from_normal(y_true, y_pred)
+           # 0.0 * correlation_loss(x, y)
 
 
 def mardia_test_loss(y_true, y_pred):
@@ -99,6 +112,10 @@ def my_multi_loss(y_true, y_pred):
            0.05 * mardia_test_loss(y_true, y_pred)
 
 
+def one_dim_family_loss(y_true, y_pred):
+
+
+
 def create_model(output_dim):
     # define model architecture
     model = tf.keras.models.Sequential([
@@ -110,9 +127,9 @@ def create_model(output_dim):
 
     # compile model
     if output_dim == 1:
-        model.compile(optimizer='adam', loss=one_dim_shapiro_wilk_loss)
+        model.compile(optimizer='adam', loss=one_dim_family_loss)
     elif output_dim == 2:
-        model.compile(optimizer='adam', loss=my_multi_loss)
+        model.compile(optimizer='adam', loss=two_dim_shapiro_wilk_loss)
     else:
         print("max dim is currently 2")
         exit(1)

@@ -54,7 +54,6 @@ def one_dim_shapiro_wilk_loss(y_true, y_pred):
 
 @tf.function
 def norm_from_normal(y_true, y_pred):
-    # breakpoint()
     dist = 0.0
     for i in range(32):
         rand_normal_points = tf.random.normal(shape=(1, 2), dtype=tf.float32)
@@ -137,7 +136,6 @@ def moments_loss(y_true, y_pred, my_test_funcs):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
     loss = 0
-    breakpoint()
     for (mu, sigma) in my_test_funcs:
         mu = tf.cast(mu, tf.float32)
         sigma = tf.cast(sigma, tf.float32)

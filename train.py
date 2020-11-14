@@ -32,6 +32,8 @@ def test_step(images, labels, model, optimizer, testing_loss_object):
 
 
 def train(model, optimizer, training_loss_object, testing_loss_object, train_ds, test_ds):
+    training_loss_list = []
+    testing_loss_list = []
     for epoch in range(EPOCHS):
         # Reset the metrics at the start of the next epoch
         train_loss.reset_states()
@@ -41,30 +43,21 @@ def train(model, optimizer, training_loss_object, testing_loss_object, train_ds,
         for images, labels in train_ds:
             train_step(images, labels, model, optimizer, training_loss_object)
             cur_counter += 1
-            if cur_counter == 250:
+            if cur_counter == 100:
                 total_counter += cur_counter
-                cur_counter = 0
+
+                for test_images, test_labels in test_ds:
+                    test_step(test_images, test_labels, model, optimizer, testing_loss_object)
+
+                training_loss_list.append(train_loss.result())
+                testing_loss_list.append(test_loss.result())
+
                 print(
                     f'Counter {total_counter}, '
                     f'Train Loss: {train_loss.result()}, '
+                    f'Test Loss: {test_loss.result()} '
                 )
 
-        cur_counter = total_counter = 0
-        for test_images, test_labels in test_ds:
-            test_step(test_images, test_labels, model, optimizer, testing_loss_object)
-            cur_counter += 1
-            if cur_counter == 250:
-                total_counter += cur_counter
                 cur_counter = 0
-                print(
-                    f'Counter {total_counter}, '
-                    f'Test Loss: {test_loss.result()}, '
-                )
 
-        print(
-            f'Epoch {epoch + 1}, '
-            f'Loss: {train_loss.result()}, '
-            f'Test Loss: {test_loss.result()}'
-        )
-
-    return model
+    return model, training_loss_list, testing_loss_list

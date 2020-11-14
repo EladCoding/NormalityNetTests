@@ -1,7 +1,7 @@
-import numpy as np
+from test_funcs import *
 import tensorflow as tf
 import tensorflow_probability as tfp
-import pingouin as pg
+# import pingouin as pg
 
 n = 32
 m = n // 2
@@ -21,6 +21,7 @@ a13 = 0.0435
 a14 = 0.0289
 a15 = 0.0144
 a16 = 0.0000
+
 
 a_arr = [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16]
 a = tf.constant([a1, a2, a3, a4])
@@ -66,18 +67,18 @@ def norm_from_normal(y_true, y_pred):
     return dist / 64
 
 
-def py_pingouin_loss(y_true, y_pred):
-    hz_results = pg.multivariate_normality(y_pred, alpha=.05)
-    hz = hz_results.hz
-    pval = hz_results.pval
-    normal = hz_results.normal
-    return hz
+# def py_pingouin_loss(y_true, y_pred):
+#     hz_results = pg.multivariate_normality(y_pred, alpha=.05)
+#     hz = hz_results.hz
+#     pval = hz_results.pval
+#     normal = hz_results.normal
+#     return hz
 
 
-@tf.function
-def tf_pingouin_loss(y_true, y_pred):
-    # return py_pingouin_loss(y_true, y_pred)
-    return tf.py_function(func=py_pingouin_loss, inp=[y_true, y_pred], Tout=tf.float32)
+# @tf.function
+# def tf_pingouin_loss(y_true, y_pred):
+#     # return py_pingouin_loss(y_true, y_pred)
+#     return tf.py_function(func=py_pingouin_loss, inp=[y_true, y_pred], Tout=tf.float32)
 
 
 @tf.function
@@ -120,3 +121,25 @@ def mardia_test_loss(y_true, y_pred):
 def my_multi_loss(y_true, y_pred):
     return 0.99 * two_dim_shapiro_wilk_loss(y_true, y_pred) +\
            0.05 * mardia_test_loss(y_true, y_pred)
+
+
+@tf.function
+def calc_moment(y_pred, mu, sigma):
+    x = tf.subtract(y_pred, mu)
+    x = tf.reduce_sum(tf.multiply(x, x), axis=1)
+    x = tf.divide(x, sigma**2)
+    x = tf.exp(-x)
+    return tf.reduce_mean(x, axis=0)
+
+
+@tf.function
+def moments_loss(y_true, y_pred, my_test_funcs):
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.cast(y_pred, tf.float32)
+    loss = 0
+    breakpoint()
+    for (mu, sigma) in my_test_funcs:
+        mu = tf.cast(mu, tf.float32)
+        sigma = tf.cast(sigma, tf.float32)
+        loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - calc_moment(y_true, mu, sigma), 2))
+    return loss

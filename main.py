@@ -1,6 +1,7 @@
 from train import *
 import matplotlib.pyplot as plt
 from datetime import datetime
+import os
 
 TRAINING_BATCH_SIZE = 3200
 TESTING_BATCH_SIZE = 32
@@ -36,61 +37,72 @@ def evaluate_model(model, optimizer, training_loss_object, testing_loss_object, 
         normal_x = tf.squeeze(tf.random.normal(shape=(TEST_SIZE, 1))).numpy()
         normal_y = tf.squeeze(tf.random.normal(shape=(TEST_SIZE, 1))).numpy()
         plt.scatter(normal_x, normal_y, label="normal")
-    plt.show()
+    title = loss_function_name + '_real_normal'
+    plt.savefig(title)
+    plt.clf()
 
     model, training_loss_list, testing_loss_list = train(model, optimizer, training_loss_object,
                                                          testing_loss_object, train_ds, test_ds)
 
-    now = datetime.now()
-    date_time = now.strftime("%Y_%m_%d_%H_%M_%S_")
-    training_loss_list = np.array(training_loss_list, dtype=np.float32)
-    training_loss_list = training_loss_list / max(training_loss_list)
+    # training_loss_list = np.array(training_loss_list, dtype=np.float32)
+    # training_loss_list = training_loss_list / max(training_loss_list)
     testing_loss_list = np.array(testing_loss_list, dtype=np.float32)
     testing_loss_list = testing_loss_list * 10
 
-    plt.clf()
-    fig = plt.figure()
-    title = loss_function_name
+    title = loss_function_name + '_loss_curve'
     plt.title(title)
-    plt.plot(training_loss_list, label="training loss")
+    # plt.plot(training_loss_list, label="training loss")
     plt.plot(testing_loss_list, label="shapiro-wilk test loss")
+    plt.axis([0, len(testing_loss_list), 0.3, 0.45])
     plt.legend(loc="upper right")
-    fig.savefig(date_time+title)
-    fig.show()
+    plt.savefig(title)
+    plt.clf()
+
+    if output_dim == 1:
+        plt.hist(tf.squeeze(model(x_train[:TEST_SIZE])).numpy(), bins=10, label="after")
+    else:
+        trained_after = model(x_train[:TEST_SIZE])
+        after_x = tf.squeeze(trained_after[:, 0]).numpy()
+        after_y = tf.squeeze(trained_after[:, 1]).numpy()
+        plt.scatter(after_x, after_y, label="after")
+    title = loss_function_name + '_train_normal'
+    plt.savefig(title)
     plt.clf()
 
     if output_dim == 1:
         plt.hist(tf.squeeze(model(x_test)).numpy(), bins=10, label="after")
     else:
-        after = model(x_test)
-        after_x = tf.squeeze(after[:, 0]).numpy()
-        after_y = tf.squeeze(after[:, 1]).numpy()
+        test_after = model(x_test)
+        after_x = tf.squeeze(test_after[:, 0]).numpy()
+        after_y = tf.squeeze(test_after[:, 1]).numpy()
         plt.scatter(after_x, after_y, label="after")
-    plt.show()
-
-    if output_dim == 1:
-        plt.hist(tf.squeeze(model(x_train[:TEST_SIZE])).numpy(), bins=10, label="after")
-    else:
-        after = model(x_train[:TEST_SIZE])
-        after_x = tf.squeeze(after[:, 0]).numpy()
-        after_y = tf.squeeze(after[:, 1]).numpy()
-        plt.scatter(after_x, after_y, label="after")
-    plt.show()
+    title = loss_function_name + '_test_normal'
+    plt.savefig(title)
+    plt.clf()
 
 
 def main():
     input_dim = output_dim = 2
+    now = datetime.now()
+    date_time = now.strftime("%Y_%m_%d_%H_%M_%S_")
+    os.mkdir(date_time)
+    os.chdir(date_time)
 
     train_ds, test_ds, x_test, x_train = load_training_data(input_dim, output_dim)
     model, optimizer, general_training_loss_object, testing_loss_object = create_model(output_dim)
     model(x_train[0:1])
     model.save_weights('model.h5')
 
-    for test_func in [big_uniform_grid, small_uniform_grid, normal_distribution_grid]:
+    test_functions_list = [growing_grid, normal_distribution_grid, big_uniform_grid, small_uniform_grid]
+
+    for test_func in test_functions_list:
         loss_function_name = test_func.__name__
+        os.mkdir(loss_function_name)
+        os.chdir(loss_function_name)
         my_test_funcs = test_func()
         training_loss_object = lambda y_true, y_pred: general_training_loss_object(y_true, y_pred, my_test_funcs)
         evaluate_model(model, optimizer, training_loss_object, testing_loss_object, train_ds, test_ds, output_dim, x_test, x_train, loss_function_name)
+        os.chdir('../')
         model.load_weights('model.h5')
 
 main()

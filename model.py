@@ -1,4 +1,4 @@
-from loss_functions import *
+from test_funcs import *
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, LeakyReLU, BatchNormalization
 from tensorflow.keras import Model
 

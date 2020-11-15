@@ -1,7 +1,6 @@
-from test_funcs import *
+import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-# import pingouin as pg
 
 n = 32
 m = n // 2
@@ -66,32 +65,12 @@ def norm_from_normal(y_true, y_pred):
     return dist / 64
 
 
-# def py_pingouin_loss(y_true, y_pred):
-#     hz_results = pg.multivariate_normality(y_pred, alpha=.05)
-#     hz = hz_results.hz
-#     pval = hz_results.pval
-#     normal = hz_results.normal
-#     return hz
-
-
-# @tf.function
-# def tf_pingouin_loss(y_true, y_pred):
-#     # return py_pingouin_loss(y_true, y_pred)
-#     return tf.py_function(func=py_pingouin_loss, inp=[y_true, y_pred], Tout=tf.float32)
-
-
 @tf.function
 def two_dim_shapiro_wilk_loss(y_true, y_pred):
     x = y_pred[:,0]
     y = y_pred[:,1]
-
-    x_plus_y = tf.add(x*x, y*y)
-
     return 0.5 * one_dim_shapiro_wilk_loss(y_true, x) + \
            0.5 * one_dim_shapiro_wilk_loss(y_true, y)
-           # 0.25 * one_dim_shapiro_wilk_loss(y_true, x_plus_y)
-           # 0.25 * norm_from_normal(y_true, y_pred)
-           # 0.0 * correlation_loss(x, y)
 
 
 def mardia_test_loss(y_true, y_pred):
@@ -131,13 +110,21 @@ def calc_moment(y_pred, mu, sigma):
     return tf.reduce_mean(x, axis=0)
 
 
+def np_calc_moment(y_pred, mu, sigma):
+    x = y_pred - mu
+    x = np.sum(np.multiply(x, x), axis=1)
+    x = np.divide(x, sigma**2)
+    x = np.exp(-x)
+    return np.mean(x, axis=0)
+
+
 @tf.function
 def moments_loss(y_true, y_pred, my_test_funcs):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
     loss = 0
-    for (mu, sigma) in my_test_funcs:
+    for (mu, sigma, moment) in my_test_funcs:
         mu = tf.cast(mu, tf.float32)
         sigma = tf.cast(sigma, tf.float32)
-        loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - calc_moment(y_true, mu, sigma), 2))
+        loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - moment, 2))
     return loss

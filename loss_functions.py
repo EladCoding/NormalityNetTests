@@ -106,7 +106,7 @@ def calc_moment(y_pred, mu, sigma):
     x = tf.subtract(y_pred, mu)
     x = tf.reduce_sum(tf.multiply(x, x), axis=1)
     x = tf.divide(x, sigma**2)
-    x = tf.exp(-x)
+    x = tf.exp(-x) * 100
     return tf.reduce_mean(x, axis=0)
 
 
@@ -114,7 +114,7 @@ def np_calc_moment(y_pred, mu, sigma):
     x = y_pred - mu
     x = np.sum(np.multiply(x, x), axis=1)
     x = np.divide(x, sigma**2)
-    x = np.exp(-x)
+    x = np.exp(-x) * 100
     return np.mean(x, axis=0)
 
 

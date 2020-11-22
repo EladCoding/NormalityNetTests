@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 
-TRAINING_BATCH_SIZE = 3200
+TRAINING_BATCH_SIZE = 320
 TESTING_BATCH_SIZE = 32
-TRAINING_BATCHES = 5000
+TRAINING_BATCHES = 20000
 TRAIN_SIZE = TRAINING_BATCH_SIZE * TRAINING_BATCHES
-TEST_SIZE = 20 * TESTING_BATCH_SIZE
+TEST_SIZE = 100 * TESTING_BATCH_SIZE
+TEST_PLOT_EXAMPLES_SIZE = 320
 
 
 def load_training_data(input_dim, output_dim):
@@ -32,10 +33,10 @@ def evaluate_model(model, optimizer, training_loss_object, testing_loss_object, 
     print(loss_function_name)
 
     if output_dim == 1:
-        plt.hist(tf.squeeze(tf.random.normal(shape=(TEST_SIZE, 1))).numpy(), bins=10, label="normal")
+        plt.hist(tf.squeeze(tf.random.normal(shape=(TEST_PLOT_EXAMPLES_SIZE, 1))).numpy(), bins=10, label="normal")
     else:
-        normal_x = tf.squeeze(tf.random.normal(shape=(TEST_SIZE, 1))).numpy()
-        normal_y = tf.squeeze(tf.random.normal(shape=(TEST_SIZE, 1))).numpy()
+        normal_x = tf.squeeze(tf.random.normal(shape=(TEST_PLOT_EXAMPLES_SIZE, 1))).numpy()
+        normal_y = tf.squeeze(tf.random.normal(shape=(TEST_PLOT_EXAMPLES_SIZE, 1))).numpy()
         plt.scatter(normal_x, normal_y, label="normal")
     title = loss_function_name + '_real_normal'
     plt.savefig(title)
@@ -59,9 +60,9 @@ def evaluate_model(model, optimizer, training_loss_object, testing_loss_object, 
     plt.clf()
 
     if output_dim == 1:
-        plt.hist(tf.squeeze(model(x_train[:TEST_SIZE])).numpy(), bins=10, label="after")
+        plt.hist(tf.squeeze(model(x_train[:TEST_PLOT_EXAMPLES_SIZE])).numpy(), bins=10, label="after")
     else:
-        trained_after = model(x_train[:TEST_SIZE])
+        trained_after = model(x_train[:TEST_PLOT_EXAMPLES_SIZE])
         after_x = tf.squeeze(trained_after[:, 0]).numpy()
         after_y = tf.squeeze(trained_after[:, 1]).numpy()
         plt.scatter(after_x, after_y, label="after")
@@ -70,13 +71,26 @@ def evaluate_model(model, optimizer, training_loss_object, testing_loss_object, 
     plt.clf()
 
     if output_dim == 1:
-        plt.hist(tf.squeeze(model(x_test)).numpy(), bins=10, label="after")
+        plt.hist(tf.squeeze(model(x_test[:TEST_PLOT_EXAMPLES_SIZE])).numpy(), bins=10, label="after")
     else:
-        test_after = model(x_test)
+        test_after = model(x_test[:TEST_PLOT_EXAMPLES_SIZE])
         after_x = tf.squeeze(test_after[:, 0]).numpy()
         after_y = tf.squeeze(test_after[:, 1]).numpy()
         plt.scatter(after_x, after_y, label="after")
     title = loss_function_name + '_test_normal'
+    plt.savefig(title)
+    plt.clf()
+
+    return testing_loss_list
+
+
+def plot_final_graph(curves_list):
+    title = 'shapiro_wilk_final_graph'
+    plt.title(title)
+    for (curve, label) in curves_list:
+        plt.plot(curve, label=label)
+        plt.axis([0, len(curve), 0.3, 0.45])
+    plt.legend(loc="upper right")
     plt.savefig(title)
     plt.clf()
 
@@ -93,16 +107,21 @@ def main():
     model(x_train[0:1])
     model.save_weights('model.h5')
 
-    test_functions_list = [growing_grid, normal_distribution_grid, big_uniform_grid, small_uniform_grid]
+    # test_functions_list = [growing_grid, normal_distribution_grid, big_uniform_grid, small_uniform_grid]
+    test_functions_list = [lambda : uniform_grid(1.3, 25)]
 
+    curves_list = []
     for test_func in test_functions_list:
         loss_function_name = test_func.__name__
         os.mkdir(loss_function_name)
         os.chdir(loss_function_name)
         my_test_funcs = test_func()
         training_loss_object = lambda y_true, y_pred: general_training_loss_object(y_true, y_pred, my_test_funcs)
-        evaluate_model(model, optimizer, training_loss_object, testing_loss_object, train_ds, test_ds, output_dim, x_test, x_train, loss_function_name)
+        cur_testing_loss_list = evaluate_model(model, optimizer, training_loss_object, testing_loss_object, train_ds, test_ds, output_dim, x_test, x_train, loss_function_name)
+        curves_list.append((cur_testing_loss_list, loss_function_name))
         os.chdir('../')
         model.load_weights('model.h5')
+
+    plot_final_graph(curves_list)
 
 main()

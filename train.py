@@ -27,7 +27,6 @@ def test_step(images, labels, model, optimizer, testing_loss_object):
     # behavior during training versus inference (e.g. Dropout).
     predictions = model(images, training=False)
     t_loss = testing_loss_object(labels, predictions)
-
     test_loss(t_loss)
 
 
@@ -52,10 +51,19 @@ def train(model, optimizer, training_loss_object, testing_loss_object, train_ds,
                 training_loss_list.append(train_loss.result())
                 testing_loss_list.append(test_loss.result())
 
+                test_output = model(test_images)
+                test_mean = tf.reduce_mean(test_output, axis=0)
+                test_std = tf.math.reduce_std(test_output, axis=0)
+
+                test_kurtosis = tf.reduce_mean(((test_output - test_mean) / test_std) ** 4, axis=0)
+
                 print(
                     f'Counter {total_counter}, '
                     f'Train Loss: {train_loss.result()}, '
-                    f'Test Loss: {test_loss.result()} '
+                    f'mean: {test_mean}, '
+                    f'std: {test_std}, '
+                    f'kurtosis: {test_kurtosis}, '
+                    f'Shapiro-wilk Loss: {test_loss.result()}'
                 )
 
                 cur_counter = 0

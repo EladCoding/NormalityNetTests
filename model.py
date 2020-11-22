@@ -11,13 +11,11 @@ class MyModel(Model):
         self.dense2 = Dense(64 * 64, activation=LeakyReLU(alpha=0.1))
         self.dense2 = Dense(64, activation=LeakyReLU(alpha=0.1))
         self.dense3 = Dense(output_dim)
-        self.batch_norm1 = BatchNormalization()
 
     def call(self, x):
         x = self.dense1(x)
         x = self.dense2(x)
-        x = self.dense3(x)
-        return self.batch_norm1(x)
+        return self.dense3(x)
 
 
 def create_model(output_dim):

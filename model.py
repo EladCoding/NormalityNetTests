@@ -6,10 +6,8 @@ from tensorflow.keras import Model
 class MyModel(Model):
     def __init__(self, output_dim):
         super(MyModel, self).__init__()
-
         self.dense1 = Dense(64, activation=LeakyReLU(alpha=0.1))
         self.dense2 = Dense(64 * 64, activation=LeakyReLU(alpha=0.1))
-        self.dense2 = Dense(64, activation=LeakyReLU(alpha=0.1))
         self.dense3 = Dense(output_dim)
 
     def call(self, x):

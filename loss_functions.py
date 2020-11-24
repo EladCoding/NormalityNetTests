@@ -2,6 +2,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+normal_points = tf.random.normal(shape=(32000, 2), dtype=tf.float32)
+
 n = 32
 m = n // 2
 a1 = 0.4220
@@ -105,16 +107,16 @@ def my_multi_loss(y_true, y_pred):
 def calc_moment(y_pred, mu, sigma):
     x = tf.subtract(y_pred, mu)
     x = tf.reduce_sum(tf.multiply(x, x), axis=1)
-    x = tf.divide(x, sigma**2)
-    x = tf.exp(-x) * 100
+    x = tf.divide(x, 2 * sigma**2)
+    x = tf.exp(-x)
     return tf.reduce_mean(x, axis=0)
 
 
 def np_calc_moment(y_pred, mu, sigma):
     x = y_pred - mu
     x = np.sum(np.multiply(x, x), axis=1)
-    x = np.divide(x, sigma**2)
-    x = np.exp(-x) * 100
+    x = np.divide(x, 2 * sigma**2)
+    x = np.exp(-x)
     return np.mean(x, axis=0)
 
 
@@ -127,4 +129,15 @@ def moments_loss(y_true, y_pred, my_test_funcs):
         mu = tf.cast(mu, tf.float32)
         sigma = tf.cast(sigma, tf.float32)
         loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - moment, 2))
+    return loss
+
+
+@tf.function
+def normal_distributed_moments_loss(y_pred, number_of_funcs, output_dim):
+    y_pred = tf.cast(y_pred, tf.float32)
+    loss = 0
+    for i in range(number_of_funcs):
+        mu = tf.random.normal(shape=(1, output_dim))
+        sigma = (tf.math.reduce_euclidean_norm(mu) + 0.1) / 5
+        loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - calc_moment(normal_points, mu, sigma), 2))
     return loss

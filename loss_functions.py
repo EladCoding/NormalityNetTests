@@ -138,6 +138,6 @@ def normal_distributed_moments_loss(y_pred, number_of_funcs, output_dim):
     loss = 0
     for i in range(number_of_funcs):
         mu = tf.random.normal(shape=(1, output_dim))
-        sigma = (tf.math.reduce_euclidean_norm(mu) + 0.1) / 5
+        sigma = (tf.math.pow(tf.math.reduce_euclidean_norm(mu), 2) + 0.2) / 6
         loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - calc_moment(normal_points, mu, sigma), 2))
     return loss

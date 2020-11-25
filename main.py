@@ -107,7 +107,8 @@ def main():
     model(x_train[0:1])
     model.save_weights('model.h5')
 
-    # test_functions_list = ['normal_distribution_grid', growing_grid, medium_uniform_grid, big_uniform_grid, small_uniform_grid]
+    # test_functions_list = \
+    #     ['normal_distribution_grid', growing_grid, medium_uniform_grid, big_uniform_grid, small_uniform_grid]
     test_functions_list = ['normal_distribution_grid']
 
     curves_list = []
@@ -119,11 +120,13 @@ def main():
         os.mkdir(loss_function_name)
         os.chdir(loss_function_name)
         if loss_function_name == 'normal_distribution_grid':
-            training_loss_object = lambda y_true, y_pred: normal_distributed_moments_loss(y_pred, NUMBER_OF_FUNCS, output_dim)
+            training_loss_object = lambda y_true, y_pred: normal_distributed_moments_loss(y_pred, NUMBER_OF_FUNCS,
+                                                                                          output_dim)
         else:
             my_test_funcs = test_func()
             training_loss_object = lambda y_true, y_pred: general_training_loss_object(y_true, y_pred, my_test_funcs)
-        cur_testing_loss_list = evaluate_model(model, optimizer, training_loss_object, testing_loss_object, train_ds, test_ds, output_dim, x_test, x_train, loss_function_name)
+        cur_testing_loss_list = evaluate_model(model, optimizer, training_loss_object, testing_loss_object, train_ds,
+                                               test_ds, output_dim, x_test, x_train, loss_function_name)
         curves_list.append((cur_testing_loss_list, loss_function_name))
         os.chdir('../')
         model.load_weights('model.h5')

@@ -1,14 +1,9 @@
 from train import *
+from utils import *
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 
-TRAINING_BATCH_SIZE = 320
-TESTING_BATCH_SIZE = 32
-TRAINING_BATCHES = 2000
-TRAIN_SIZE = TRAINING_BATCH_SIZE * TRAINING_BATCHES
-TEST_SIZE = 100 * TESTING_BATCH_SIZE
-TEST_PLOT_EXAMPLES_SIZE = 320
 
 
 def load_training_data(input_dim, output_dim):
@@ -96,14 +91,13 @@ def plot_final_graph(curves_list):
 
 
 def main():
-    input_dim = output_dim = 2
     now = datetime.now()
     date_time = now.strftime("%Y_%m_%d_%H_%M_%S_")
     os.mkdir(date_time)
     os.chdir(date_time)
 
-    train_ds, test_ds, x_test, x_train = load_training_data(input_dim, output_dim)
-    model, optimizer, general_training_loss_object, testing_loss_object = create_model(output_dim)
+    train_ds, test_ds, x_test, x_train = load_training_data(INPUT_DIM, OUTPUT_DIM)
+    model, optimizer, general_training_loss_object, testing_loss_object = create_model(OUTPUT_DIM)
     model(x_train[0:1])
     model.save_weights('model.h5')
 
@@ -120,13 +114,13 @@ def main():
         os.mkdir(loss_function_name)
         os.chdir(loss_function_name)
         if loss_function_name == 'normal_distribution_grid':
-            training_loss_object = lambda y_true, y_pred: normal_distributed_moments_loss(y_pred, NUMBER_OF_FUNCS,
-                                                                                          output_dim)
+            training_loss_object = lambda y_true, y_pred: normal_distributed_moments_loss(y_pred, NUMBER_OF_TEST_FUNCS,
+                                                                                          OUTPUT_DIM)
         else:
             my_test_funcs = test_func()
             training_loss_object = lambda y_true, y_pred: general_training_loss_object(y_true, y_pred, my_test_funcs)
         cur_testing_loss_list = evaluate_model(model, optimizer, training_loss_object, testing_loss_object, train_ds,
-                                               test_ds, output_dim, x_test, x_train, loss_function_name)
+                                               test_ds, OUTPUT_DIM, x_test, x_train, loss_function_name)
         curves_list.append((cur_testing_loss_list, loss_function_name))
         os.chdir('../')
         model.load_weights('model.h5')

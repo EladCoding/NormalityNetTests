@@ -1,10 +1,7 @@
 from loss_functions import *
 
-critical_normal_part = 3.0
-NUMBER_OF_FUNCS = 25
 
-
-def growing_grid(number_of_funcs=NUMBER_OF_FUNCS):
+def growing_grid(number_of_funcs=NUMBER_OF_TEST_FUNCS):
     test_funcs = []
     grid_n = int((np.sqrt(number_of_funcs//4)))
 
@@ -26,27 +23,21 @@ def growing_grid(number_of_funcs=NUMBER_OF_FUNCS):
     return test_funcs
 
 
-def uniform_grid(sigma, number_of_funcs):
+def get_uniform_np_test_funcs(sigma, normal_data):
     test_funcs = []
-    grid_n = int((np.sqrt(number_of_funcs)))
-    dist_between_points = (critical_normal_part*2)/grid_n
-    grid_x = np.arange(-critical_normal_part, critical_normal_part, dist_between_points)
-    grid_y = np.arange(-critical_normal_part, critical_normal_part, dist_between_points)
-    for x in grid_x:
-        for y in grid_y:
-            test_funcs.append(((x, y), sigma, np_calc_moment(normal_points, (x, y), sigma)))
-    print(len(test_funcs))
-    print(test_funcs[-1])
+    grid = get_uniform_grid(NUMBER_OF_TEST_FUNCS, CRITICAL_NORMAL_PART_RADIUS)
+    for (x, y) in grid:
+        test_funcs.append(((x, y), sigma, np_calc_moment(normal_data, (x, y), sigma)))
     return test_funcs
 
 
 def small_uniform_grid():
-    return uniform_grid(0.1, number_of_funcs=NUMBER_OF_FUNCS)
+    return get_uniform_np_test_funcs(0.1, number_of_funcs=NUMBER_OF_TEST_FUNCS)
 
 
 def medium_uniform_grid():
-    return uniform_grid(1.1, number_of_funcs=NUMBER_OF_FUNCS)
+    return get_uniform_np_test_funcs(1.1, number_of_funcs=NUMBER_OF_TEST_FUNCS)
 
 
 def big_uniform_grid():
-    return uniform_grid(10, number_of_funcs=NUMBER_OF_FUNCS)
+    return get_uniform_np_test_funcs(10, number_of_funcs=NUMBER_OF_TEST_FUNCS)

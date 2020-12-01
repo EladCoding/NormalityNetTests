@@ -35,7 +35,7 @@ def train(model, optimizer, training_loss_object, testing_loss_object, train_ds,
     testing_loss_list = []
     for epoch in range(EPOCHS):
         # Reset the metrics at the start of the next epoch
-        train_loss.reset_states()
+        train_loss.reset_states()testing_loss_list
         test_loss.reset_states()
 
         cur_counter = total_counter = 0

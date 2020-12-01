@@ -1,6 +1,6 @@
-import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+from utils import *
 
 normal_points = tf.random.normal(shape=(32000, 2), dtype=tf.float32)
 
@@ -110,14 +110,6 @@ def calc_moment(y_pred, mu, sigma):
     x = tf.divide(x, 2 * sigma**2)
     x = tf.exp(-x)
     return tf.reduce_mean(x, axis=0)
-
-
-def np_calc_moment(y_pred, mu, sigma):
-    x = y_pred - mu
-    x = np.sum(np.multiply(x, x), axis=1)
-    x = np.divide(x, 2 * sigma**2)
-    x = np.exp(-x)
-    return np.mean(x, axis=0)
 
 
 @tf.function

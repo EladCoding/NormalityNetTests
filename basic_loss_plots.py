@@ -22,29 +22,69 @@ def get_uniform_test_funcs(sigma, normal_data):
     return test_funcs, expected_moments
 
 
-def main():
-    normal_data = sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=OUTPUT_DIM, batch_size=NORMAL_POINTS_NUM)
-    curves_list = []
-    # uniform
-    uniform_possible_sigma = np.arange(0.0, 20, 0.2)
-    uniform_sigma = []
-    uniform_loss = []
-    uniform_std = []
-    for sigma in uniform_possible_sigma:
+def get_normal_heuristics_test_funcs(scale_factor, normal_data):
+    test_funcs = []
+    grid = sample_normal_distribution_with_different_kurtosis(alpha=1.5, dim=OUTPUT_DIM, batch_size=TRAINING_BATCH_SIZE)
+    expected_moments = np.empty(len(grid))
+    for i, point in enumerate(grid):
+        sigma = normal_sigma_generator_heuristic(point, scale_factor)
+        test_funcs.append((point, sigma))
+        normal_expected_moment = np_calc_moment(normal_data, point, sigma)
+        expected_moments[i] = normal_expected_moment
+    return test_funcs, expected_moments
+
+
+def generate_grid_loss_curve(grid_type, normal_data):
+    if grid_type == "uniform":
+        possible_sigma = np.arange(0.0, 20, 0.2)
+    elif grid_type == "normal_heuristic":
+        # Note that here it is a scale factor and not directly sigma
+        possible_sigma = np.append(np.arange(0.0, 2.9, 0.1), np.arange(3.0, 20.0, 0.5))
+    else:
+        print("we currently have only uniform and normal heuristics grids")
+        exit(1)
+
+    sigma_list = []
+    loss_list = []
+    std_list = []
+    for sigma in possible_sigma:
+        print(sigma)
         cur_sigma_uniform_loss = []
         if sigma == 0:
             continue
-        test_funcs, expected_moments = get_uniform_test_funcs(sigma, normal_data)
+        if grid_type == "uniform":
+            test_funcs, expected_moments = get_uniform_test_funcs(sigma, normal_data)
         for i in range(RUNNING_REPITITIONS):
+            if grid_type == "normal_heuristic":
+                test_funcs, expected_moments = get_normal_heuristics_test_funcs(sigma, normal_data)
             high_kurtosis_data = sample_normal_distribution_with_different_kurtosis(alpha=1.5, dim=OUTPUT_DIM, batch_size=TRAINING_BATCH_SIZE)
             cur_sigma_uniform_loss.append(normalized_np_moments_loss(high_kurtosis_data, test_funcs, expected_moments))
-        uniform_sigma.append(sigma)
+        sigma_list.append(sigma)
         mean_sigma_uniform_loss = np.mean(cur_sigma_uniform_loss)
-        uniform_loss.append(mean_sigma_uniform_loss)
+        loss_list.append(mean_sigma_uniform_loss)
         std_sigma_uniform_loss = np.std(cur_sigma_uniform_loss)
-        uniform_std.append(std_sigma_uniform_loss)
-    curves_list.append((uniform_sigma, uniform_loss, uniform_std, "uniform_loss_curve"))
+        std_list.append(std_sigma_uniform_loss)
 
+        loss_list[-1] /= std_sigma_uniform_loss
+
+    return (sigma_list, loss_list, std_list, grid_type + "_loss_curve")
+
+
+def main():
+    print("----------------------------------------Generating Basic loss plot----------------------------------------")
+    normal_data = sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=OUTPUT_DIM, batch_size=NORMAL_POINTS_NUM)
+    curves_list = []
+
+    print("------------------------------Generating Uniform loss plot------------------------------")
+    curves_list.append(generate_grid_loss_curve("uniform", normal_data))
+
+    # print("------------------------------Generating Normal loss plot------------------------------")
+    # curves_list.append(generate_grid_loss_curve("normal_heuristic", normal_data))
+    #
+    # print("------------------------------Generating Normal loss plot------------------------------")
+    # curves_list.append(generate_grid_loss_curve("normal_heuristic", normal_data))
+
+    print("------------------------------Drawing Normal loss plot------------------------------")
     plot_graph(curves_list, "losses", "sigma", "loss value")
 
 

@@ -19,7 +19,7 @@ TEST_SIZE = 100 * TESTING_BATCH_SIZE
 TEST_PLOT_EXAMPLES_SIZE = 320
 
 # Other parameters
-RUNNING_REPITITIONS = 10
+RUNNING_REPITITIONS = 100
 
 
 def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_max=None, y_min=None, y_max=None):
@@ -28,8 +28,8 @@ def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_m
     plt.ylabel(y_label)
     plt.yscale('log')
     for (curve_x, curve_y, std, label) in curves_list:
-        plt.errorbar(curve_x, curve_y, std, fmt='ro', label=label, ecolor='green', markersize=3)
-        # plt.plot(curve_x, curve_y, 'ro', label=label, markersize=3)
+        # plt.errorbar(curve_x, curve_y, std, fmt='ro', label=label, ecolor='green', markersize=3)
+        plt.plot(curve_x, curve_y, 'ro', label=label, markersize=3)
         # plt.plot(curve_x, curve_y, 'ro', label=label)
         if axis:
             plt.axis([x_min, x_max, y_min, y_max])

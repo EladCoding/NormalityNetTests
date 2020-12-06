@@ -47,14 +47,6 @@ def np_calc_moment(sampled_data, mu, sigma):
     return np.mean(x, axis=0)
 
 
-def np_calc_moment(sampled_data, mu, sigma):
-    x = sampled_data - mu
-    x = np.sum(np.multiply(x, x), axis=1)
-    x = np.divide(x, 2 * (sigma**2))
-    x = np.exp(-x)
-    return np.mean(x, axis=0)
-
-
 def normalized_np_moments_loss(sampled_data, test_funcs, expected_moments):
     if len(test_funcs) != len(expected_moments):
         print("len(test_funcs) != len(expected_moments)")
@@ -82,4 +74,3 @@ def get_uniform_grid(total_points, radius):
 def normal_sigma_generator_heuristic(mu, scale_factor):
     sigma = (np.math.pow(np.linalg.norm(mu), 2) * scale_factor) + 0.05
     return sigma
-

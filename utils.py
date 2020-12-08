@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 import numpy as np
 
 # Problem parameters
@@ -27,9 +28,23 @@ def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_m
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.yscale('log')
-    for (curve_x, curve_y, std, label) in curves_list:
-        # plt.errorbar(curve_x, curve_y, std, fmt='ro', label=label, ecolor='green', markersize=3)
-        plt.plot(curve_x, curve_y, 'ro', label=label, markersize=3)
+    for i, (curve_x, curve_y, std, label) in enumerate(curves_list):
+        if i == 0:
+            line_color = 'g'
+        elif i == 1:
+            line_color = 'b'
+        elif i == 1:
+            line_color = 'y'
+        elif i == 1:
+            line_color = 'p'
+        elif i == 1:
+            line_color = 'o'
+        else:
+            "too many curves"
+            exit(1)
+
+        plt.errorbar(curve_x, curve_y, std, fmt='o-'+line_color, label=label, ecolor='red', markersize=3)
+        # plt.plot(curve_x, curve_y, 'ro', label=label, markersize=3)
         # plt.plot(curve_x, curve_y, 'ro', label=label)
         if axis:
             plt.axis([x_min, x_max, y_min, y_max])
@@ -45,6 +60,32 @@ def np_calc_moment(sampled_data, mu, sigma):
     x = np.divide(x, 2 * (sigma**2))
     x = np.exp(-x)
     return np.mean(x, axis=0)
+
+
+def np_calc_fourier_moment(sampled_data, omega):
+    x = np.cos(sampled_data*omega)
+    x = np.sum(x, axis=0)
+    return x
+
+
+def np_calc_one_dim_fourier_moments(sampled_data, omegas):
+    moments = []
+    for omega in omegas:
+        if omega == 0:
+            print("Omega = 0")
+            exit(1)
+        moments.append(np_calc_fourier_moment(sampled_data, omega) / len(sampled_data))
+    return moments
+
+
+def np_calc_one_dim_uniform_grid_moments(sampled_data, sigma, grid):
+    moments = []
+    for mu in grid:
+        x = sampled_data / sigma
+        x = x + mu
+        x = np.sum(norm.pdf(x))
+        moments.append(x / len(sampled_data))
+    return moments
 
 
 def normalized_np_moments_loss(sampled_data, test_funcs, expected_moments):

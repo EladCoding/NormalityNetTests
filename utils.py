@@ -19,7 +19,7 @@ TEST_SIZE = 100 * TESTING_BATCH_SIZE
 TEST_PLOT_EXAMPLES_SIZE = 320
 
 # Other parameters
-RUNNING_REPITITIONS = 100
+RUNNING_REPITITIONS = 1000
 
 
 def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_max=None, y_min=None, y_max=None):

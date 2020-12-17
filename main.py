@@ -1,9 +1,7 @@
 from train import *
-from utils import *
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
-
 
 
 def load_training_data(input_dim, output_dim):
@@ -92,7 +90,7 @@ def plot_final_graph(curves_list):
 
 def main():
     now = datetime.now()
-    date_time = now.strftime("%Y_%m_%d_%H_%M_%S_")
+    date_time = now.strftime("%Y_%m_%d_%H_%M_%S")
     os.mkdir(date_time)
     os.chdir(date_time)
 
@@ -103,7 +101,7 @@ def main():
 
     # test_functions_list = \
     #     ['normal_distribution_grid', growing_grid, medium_uniform_grid, big_uniform_grid, small_uniform_grid]
-    test_functions_list = ['normal_distribution_grid']
+    test_functions_list = [medium_uniform_grid]
 
     curves_list = []
     for test_func in test_functions_list:

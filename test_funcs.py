@@ -14,20 +14,20 @@ def growing_grid(number_of_funcs=NUMBER_OF_TEST_FUNCS):
             j_sigma = grid_list[j]
             j_mu = j_sigma - 0.1
             sigma = max(i_sigma, j_sigma)
-            test_funcs.append(((i_mu, j_mu), sigma, np_calc_moment(normal_points, (i_mu, j_mu), sigma)))
-            test_funcs.append(((-i_mu, j_mu), sigma, np_calc_moment(normal_points, (-i_mu, j_mu), sigma)))
-            test_funcs.append(((i_mu, -j_mu), sigma, np_calc_moment(normal_points, (i_mu, -j_mu), sigma)))
-            test_funcs.append(((-i_mu, -j_mu), sigma, np_calc_moment(normal_points, (-i_mu, -j_mu), sigma)))
+            test_funcs.append(((i_mu, j_mu), sigma, np_calc_gaus_moment(NORMAL_POINTS, (i_mu, j_mu), sigma)))
+            test_funcs.append(((-i_mu, j_mu), sigma, np_calc_gaus_moment(NORMAL_POINTS, (-i_mu, j_mu), sigma)))
+            test_funcs.append(((i_mu, -j_mu), sigma, np_calc_gaus_moment(NORMAL_POINTS, (i_mu, -j_mu), sigma)))
+            test_funcs.append(((-i_mu, -j_mu), sigma, np_calc_gaus_moment(NORMAL_POINTS, (-i_mu, -j_mu), sigma)))
     print(len(test_funcs))
     print(test_funcs[-1])
     return test_funcs
 
 
-def get_uniform_np_test_funcs(sigma, normal_data):
+def get_uniform_np_test_funcs(sigma, number_of_funcs):
     test_funcs = []
-    grid = get_uniform_grid(NUMBER_OF_TEST_FUNCS, CRITICAL_NORMAL_PART_RADIUS)
+    grid = get_uniform_grid(number_of_funcs, CRITICAL_NORMAL_PART_RADIUS)
     for (x, y) in grid:
-        test_funcs.append(((x, y), sigma, np_calc_moment(normal_data, (x, y), sigma)))
+        test_funcs.append(((x, y), sigma, np_calc_gaus_moment(NORMAL_POINTS, (x, y), sigma)))
     return test_funcs
 
 

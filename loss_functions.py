@@ -1,8 +1,8 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-from utils import *
+from np_utils import *
 
-normal_points = tf.random.normal(shape=(32000, 2), dtype=tf.float32)
+NORMAL_POINTS = tf.random.normal(shape=(NORMAL_POINTS_NUM, 2), dtype=tf.float32)
 
 n = 32
 m = n // 2
@@ -68,11 +68,11 @@ def norm_from_normal(y_true, y_pred):
 
 
 @tf.function
-def two_dim_shapiro_wilk_loss(y_true, y_pred):
-    x = y_pred[:,0]
-    y = y_pred[:,1]
-    return 0.5 * one_dim_shapiro_wilk_loss(y_true, x) + \
-           0.5 * one_dim_shapiro_wilk_loss(y_true, y)
+def multi_dim_shapiro_wilk_loss(y_true, y_pred, dim=2):
+    loss = 0
+    for i in range(dim):
+        loss += one_dim_shapiro_wilk_loss(y_true, y_pred[:, i])
+    return tf.divide(loss, dim)
 
 
 def mardia_test_loss(y_true, y_pred):
@@ -99,28 +99,45 @@ def mardia_test_loss(y_true, y_pred):
 
 
 def my_multi_loss(y_true, y_pred):
-    return 0.99 * two_dim_shapiro_wilk_loss(y_true, y_pred) +\
+    return 0.99 * multi_dim_shapiro_wilk_loss(y_true, y_pred) +\
            0.05 * mardia_test_loss(y_true, y_pred)
 
 
 @tf.function
-def calc_moment(y_pred, mu, sigma):
+def calc_gaus_moment(y_pred, mu, sigma):
     x = tf.subtract(y_pred, mu)
     x = tf.reduce_sum(tf.multiply(x, x), axis=1)
-    x = tf.divide(x, 2 * sigma**2)
+    x = tf.divide(x, 2 * (sigma**2))
     x = tf.exp(-x)
     return tf.reduce_mean(x, axis=0)
 
 
 @tf.function
-def moments_loss(y_true, y_pred, my_test_funcs):
+def calc_fourier_moment(y_pred, omega):
+    x = tf.reduce_sum(tf.multiply(y_pred, omega))
+    x = tf.math.cos(x)
+    return tf.reduce_mean(x, axis=0)
+
+
+@tf.function
+def fourier_moments_loss(y_true, y_pred, my_test_funcs):
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.cast(y_pred, tf.float32)
+    loss = 0
+    for (omega, moment) in my_test_funcs:
+        loss = loss + (tf.math.pow(calc_fourier_moment(y_pred, omega) - moment, 2))
+    return loss
+
+
+@tf.function
+def gaus_moments_loss(y_true, y_pred, my_test_funcs):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
     loss = 0
     for (mu, sigma, moment) in my_test_funcs:
         mu = tf.cast(mu, tf.float32)
         sigma = tf.cast(sigma, tf.float32)
-        loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - moment, 2))
+        loss = loss + (tf.math.pow(calc_gaus_moment(y_pred, mu, sigma) - moment, 2))
     return loss
 
 
@@ -131,5 +148,5 @@ def normal_distributed_moments_loss(y_pred, number_of_funcs, output_dim):
     for i in range(number_of_funcs):
         mu = tf.random.normal(shape=(1, output_dim))
         sigma = (tf.math.pow(tf.math.reduce_euclidean_norm(mu), 2) + 0.7) / 9
-        loss = loss + (tf.math.pow(calc_moment(y_pred, mu, sigma) - calc_moment(normal_points, mu, sigma), 2))
+        loss = loss + (tf.math.pow(calc_gaus_moment(y_pred, mu, sigma) - calc_gaus_moment(NORMAL_POINTS, mu, sigma), 2))
     return loss

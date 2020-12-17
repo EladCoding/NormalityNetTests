@@ -60,7 +60,7 @@ def train(model, optimizer, training_loss_object, testing_loss_object, train_ds,
                 print(
                     f'Counter {total_counter}, '
                     f'Train Loss: {train_loss.result()}.\n'
-                    f'Shapiro-wilk Loss: {test_loss.result()}'
+                    f'Shapiro-wilk Loss: {test_loss.result()}, '
                     f'mean: {test_mean}, '
                     f'std: {test_std}, '
                     f'kurtosis: {test_kurtosis}.'

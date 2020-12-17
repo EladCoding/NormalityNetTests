@@ -1,4 +1,5 @@
-from utils import *
+from np_utils import *
+from playground import *
 
 
 def get_uniform_test_funcs(sigma, normal_data):
@@ -24,75 +25,20 @@ def get_normal_heuristics_test_funcs(scale_factor, normal_data):
     return test_funcs, expected_moments
 
 
-def generate_grid_loss_curve(grid_type, normal_data):
-    if grid_type == "uniform":
-        possible_sigma = np.arange(0.1, 10, 0.2)
-    elif grid_type == "normal_heuristic":
-        # Note that here it is a scale factor and not directly sigma
-        # possible_sigma = np.arange(0.3, 1.0, 0.1)
-        possible_sigma = np.append(np.arange(0.3, 1.0, 0.1), np.arange(3.0, 20.0, 0.5))
-    else:
-        print("we currently have only uniform and normal heuristics grids")
-        exit(1)
-
-    sigma_list = []
-    loss_list = []
-    std_list = []
-    for sigma in possible_sigma:
-        print(sigma)
-        cur_sigma_loss = []
-        if sigma == 0:
-            print("Sigma = 0")
-            exit(1)
-        if grid_type == "uniform":
-            test_funcs, expected_moments = get_uniform_test_funcs(sigma, normal_data)
-        elif grid_type == "normal_heuristic":
-            test_funcs, expected_moments = get_normal_heuristics_test_funcs(sigma, normal_data)
-        else:
-            print("we currently have only uniform and normal heuristics grids")
-            exit(1)
-        for i in range(RUNNING_REPITITIONS):
-            high_kurtosis_data = sample_normal_distribution_with_different_kurtosis(alpha=1.5, dim=OUTPUT_DIM,
-                                                                                    batch_size=TRAINING_BATCH_SIZE)
-            # normal_kurtosis_data = sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=OUTPUT_DIM, batch_size=TRAINING_BATCH_SIZE)
-            cur_sigma_loss.append(normalized_np_moments_loss(high_kurtosis_data, test_funcs, expected_moments))
-        sigma_list.append(sigma)
-        mean_sigma_loss = np.mean(cur_sigma_loss)
-        loss_list.append(mean_sigma_loss)
-        std_sigma_loss = np.std(cur_sigma_loss)
-        std_list.append(std_sigma_loss)
-
-        # loss_list[-1] /= std_sigma_uniform_loss
-
-    return (sigma_list, loss_list, std_list, grid_type + "_loss_curve")
-
-
-def calc_fourier_loss(sampled_points, omegas, expected_moments):
-    cur_moments = np_calc_one_dim_fourier_moments(sampled_points, omegas)
-    if relative_error:
-        moments_diff = [(expected_moments[i] - cur_moments[i])/expected_moments[i] for i in range(len(omegas))]
-    else:
-        moments_diff = [expected_moments[i] - cur_moments[i] for i in range(len(omegas))]
-    return np.sum(moments_diff)
-
-
-def generate_one_dim_fourier_loss_curve(grid_type, normal_data, number_of_funcs):
+def generate_fourier_loss_curve(grid_type, normal_data, number_of_funcs, different_distribution_func, dim):
     loss_list = []
     std_list = []
 
-    possible_omegas = np.arange(0, 1.1, 0.1)
-    # possible_omegas = np.arange(0, 5, 0.1)
-    # possible_omegas = [3.0]
-    # possible_omegas = [0.5]
+    possible_omega = np.arange(0, 1.1, 0.1)
+    possible_omegas = [[omega]*dim for omega in possible_omega]
 
-    for omega in possible_omegas:
-        print(omega)
-        expected_moments = np_calc_one_dim_fourier_moments(normal_data, [omega])
+    for omegas in possible_omegas:
+        print(omegas)
+        expected_moments = np_calc_fourier_moments(normal_data, [omegas])
         cur_omegas_loss = []
         for i in range(RUNNING_REPITITIONS):
-            different_distribution_data = different_distribution_samples(TRAINING_BATCH_SIZE)
-            # cur_omegas_loss.append(np_calc_one_dim_fourier_moments(different_distribution_data, [omega]))
-            cur_omegas_loss.append(calc_fourier_loss(different_distribution_data, [omega], expected_moments))
+            different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE)
+            cur_omegas_loss.append(calc_moments_loss(different_distribution_data, None, [omegas], expected_moments, type='fourier'))
 
         mean_omega_loss = np.abs(np.mean(cur_omegas_loss))
         loss_list.append(mean_omega_loss)
@@ -100,30 +46,36 @@ def generate_one_dim_fourier_loss_curve(grid_type, normal_data, number_of_funcs)
         std_list.append(std_omega_loss)
 
         if divide_by_std:
-            loss_list[-1] /= std_omega_loss
+            if std_omega_loss != 0:
+                loss_list[-1] /= std_omega_loss
+            else:
+                if loss_list[-1] != 0:
+                    print("std 0 and loss != 0")
+                    exit(1)
 
         print(std_omega_loss)
 
-    return (possible_omegas, loss_list, std_list, grid_type + "_loss_curve")
+    return (possible_omega, loss_list, std_list, grid_type + "_loss_curve")
 
 
-def calc_one_dim_uniform_grid_loss(sampled_points, sigma, uniform_grid, expected_moments):
-    cur_moments = np_calc_one_dim_uniform_grid_moments(sampled_points, sigma, uniform_grid)
-    if relative_error:
-        moments_diff = [(expected_moments[i] - cur_moments[i])/expected_moments[i] for i in range(len(uniform_grid))]
+def calc_moments_loss(sampled_points, sigma, grid, expected_moments, type):
+    if type == "fourier":
+        cur_moments = np_calc_fourier_moments(sampled_points, grid)
+    elif type == "gaus":
+        cur_moments = np_calc_gaus_grid_moments(sampled_points, grid, sigma)
     else:
-        moments_diff = [expected_moments[i] - cur_moments[i] for i in range(len(uniform_grid))]
+        print("no such type of moment loss")
+        exit(1)
+    if relative_error:
+        moments_diff = [(expected_moments[i] - cur_moments[i])/expected_moments[i] for i in range(len(grid))]
+    else:
+        moments_diff = [expected_moments[i] - cur_moments[i] for i in range(len(grid))]
     return np.sum(moments_diff)
 
 
-def generate_one_dim_uniform_loss_curve(grid_type, normal_data, number_of_funcs):
-    # dist_between_sigmas = 6.0 / number_of_funcs
-    # uniform_grid = np.arange(-3, 3, dist_between_sigmas)
-    # possible_sigmas = np.arange(0.2, 2.0, 0.1)
-
-    # uniform_grid = np.arange(-3, 3, 0.1)
-    uniform_grid = [0]
-    possible_sigmas = np.arange(0.05, 5.0, 0.1)
+def generate_uniform_loss_curve(grid_type, normal_data, number_of_funcs, different_distribution_func, dim):
+    uniform_grid = [[0]*dim]
+    possible_sigmas = np.arange(0.15, 5.0, 0.1)
 
     loss_list = []
     std_list = []
@@ -131,11 +83,11 @@ def generate_one_dim_uniform_loss_curve(grid_type, normal_data, number_of_funcs)
     for sigma in possible_sigmas:
         print(sigma)
         cur_sigma_loss = []
-        expected_moments = np_calc_one_dim_uniform_grid_moments(normal_data, sigma, uniform_grid)
+        expected_moments = np_calc_gaus_grid_moments(normal_data, uniform_grid, sigma)
 
         for i in range(RUNNING_REPITITIONS):
-            different_distribution_data = different_distribution_samples(TRAINING_BATCH_SIZE)
-            cur_sigma_loss.append(calc_one_dim_uniform_grid_loss(different_distribution_data, sigma, uniform_grid, expected_moments))
+            different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE)
+            cur_sigma_loss.append(calc_moments_loss(different_distribution_data, sigma, uniform_grid, expected_moments, type='gaus'))
 
         mean_sigma_loss = np.abs(np.mean(cur_sigma_loss))
         loss_list.append(mean_sigma_loss)
@@ -144,43 +96,33 @@ def generate_one_dim_uniform_loss_curve(grid_type, normal_data, number_of_funcs)
 
         if divide_by_std:
             loss_list[-1] /= std_sigma_loss
-        # print(std_sigma_loss)
 
     return (possible_sigmas, loss_list, std_list, grid_type + "_loss_curve")
 
 
 def main():
     print("----------------------------------------Generating Basic loss plot----------------------------------------")
-    normal_data = sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=1, batch_size=NORMAL_POINTS_NUM)
+    normal_data = sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=dist_dim, batch_size=NORMAL_POINTS_NUM)
     curves_list = []
-    number_of_funcs = 10
 
-    # print("------------------------------Generating Uniform loss plot------------------------------")
-    # curves_list.append(generate_grid_loss_curve("uniform", normal_data))
-
-    # print("------------------------------Generating Normal loss plot------------------------------")
-    # curves_list.append(generate_grid_loss_curve("normal_heuristic", normal_data))
-
-    # print("------------------------------Generating Normal loss plot------------------------------")
-    # curves_list.append(generate_grid_loss_curve("normal_heuristic", normal_data))
-
+    normal_lambda = lambda x: sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=dist_dim, batch_size=x)
     if run_gaus:
         print("------------------------------Generating Uniform loss plot------------------------------")
-        curves_list.append(generate_one_dim_uniform_loss_curve("gaus", normal_data, number_of_funcs))
+        possible_omegas, loss_list, std_list, curve_label = generate_uniform_loss_curve("gaus", normal_data, number_of_funcs, different_distribution_samples, dist_dim)
+        if subtract_normal_results:
+            normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_uniform_loss_curve("gaus", normal_data, number_of_funcs, normal_lambda, dist_dim)
+            loss_list = [loss_list[i] - normal_loss_list[i] for i in range(len(loss_list))]
+        curves_list.append((possible_omegas, loss_list, std_list, curve_label))
     if run_fourier:
         print("------------------------------Generating Fourier loss plot------------------------------")
-        curves_list.append(generate_one_dim_fourier_loss_curve("fourier", normal_data, number_of_funcs))
+        possible_omegas, loss_list, std_list, curve_label = generate_fourier_loss_curve("fourier", normal_data, number_of_funcs, different_distribution_samples, dist_dim)
+        if subtract_normal_results:
+            normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_fourier_loss_curve("fourier", normal_data, number_of_funcs, normal_lambda, dist_dim)
+            loss_list = [loss_list[i] - normal_loss_list[i] for i in range(len(loss_list))]
+        curves_list.append((possible_omegas, loss_list, std_list, curve_label))
 
     print("------------------------------Drawing Normal loss plot------------------------------")
-    plot_graph(curves_list, "losses", x_label, "loss value")
+    plot_graph(curves_list, "losses", x_label_name, "loss value")
 
-# for i in range(5):
-#     data = different_distribution_samples(TRAINING_BATCH_SIZE)
-#     plt.hist(data)
-#     plt.show()
-# for i in range(5):
-#     data = np.random.normal(size=TRAINING_BATCH_SIZE)
-#     plt.hist(data)
-#     plt.show()
 
 main()

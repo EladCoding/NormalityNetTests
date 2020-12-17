@@ -26,8 +26,8 @@ def create_model(output_dim):
         training_loss_object = one_dim_shapiro_wilk_loss
         testing_loss_object = one_dim_shapiro_wilk_loss
     elif output_dim == 2:
-        training_loss_object = moments_loss
-        testing_loss_object = two_dim_shapiro_wilk_loss
+        training_loss_object = gaus_moments_loss
+        testing_loss_object = multi_dim_shapiro_wilk_loss
     else:
         print("max dim is currently 2")
         exit(1)

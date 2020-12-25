@@ -1,3 +1,5 @@
+import itertools
+
 from np_utils import *
 from playground import *
 
@@ -29,8 +31,9 @@ def generate_fourier_loss_curve(grid_type, normal_data, number_of_funcs, differe
     loss_list = []
     std_list = []
 
-    possible_omega = np.arange(0, 1.1, 0.1)
-    possible_omegas = [[omega]*dim for omega in possible_omega]
+    possible_omega_values = np.arange(0, 1.1, 0.1)
+    possible_omegas = list(itertools.permutations(possible_omega_values, dim))
+    possible_omega = range(len(possible_omegas))
 
     for omegas in possible_omegas:
         print(omegas)
@@ -108,16 +111,16 @@ def main():
     normal_lambda = lambda x: sample_normal_distribution_with_different_kurtosis(alpha=1.0, dim=dist_dim, batch_size=x)
     if run_gaus:
         print("------------------------------Generating Uniform loss plot------------------------------")
-        possible_omegas, loss_list, std_list, curve_label = generate_uniform_loss_curve("gaus", normal_data, number_of_funcs, different_distribution_samples, dist_dim)
+        possible_omegas, loss_list, std_list, curve_label = generate_uniform_loss_curve("gaus", normal_data, NUMBER_OF_TEST_FUNCS, different_distribution_samples, dist_dim)
         if subtract_normal_results:
-            normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_uniform_loss_curve("gaus", normal_data, number_of_funcs, normal_lambda, dist_dim)
+            normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_uniform_loss_curve("gaus", normal_data, NUMBER_OF_TEST_FUNCS, normal_lambda, dist_dim)
             loss_list = [loss_list[i] - normal_loss_list[i] for i in range(len(loss_list))]
         curves_list.append((possible_omegas, loss_list, std_list, curve_label))
     if run_fourier:
         print("------------------------------Generating Fourier loss plot------------------------------")
-        possible_omegas, loss_list, std_list, curve_label = generate_fourier_loss_curve("fourier", normal_data, number_of_funcs, different_distribution_samples, dist_dim)
+        possible_omegas, loss_list, std_list, curve_label = generate_fourier_loss_curve("fourier", normal_data, NUMBER_OF_TEST_FUNCS, different_distribution_samples, dist_dim)
         if subtract_normal_results:
-            normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_fourier_loss_curve("fourier", normal_data, number_of_funcs, normal_lambda, dist_dim)
+            normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_fourier_loss_curve("fourier", normal_data, NUMBER_OF_TEST_FUNCS, normal_lambda, dist_dim)
             loss_list = [loss_list[i] - normal_loss_list[i] for i in range(len(loss_list))]
         curves_list.append((possible_omegas, loss_list, std_list, curve_label))
 

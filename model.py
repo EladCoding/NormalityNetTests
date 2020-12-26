@@ -32,14 +32,24 @@ def create_model(output_dim):
     else:
         if net_type == 'gaus':
             if random_test_funcs:
-                training_loss_object = normal_distributed_moments_loss
+                if mean_std_training_loss:
+                    training_loss_object = gaus_mean_std_loss
+                else:
+                    training_loss_object = normal_distributed_gaus_moments_loss
+                testing_loss_object = normal_distributed_gaus_moments_loss
             else:
                 training_loss_object = gaus_moments_loss
+                testing_loss_object = gaus_moments_loss
         elif net_type == 'fourier':
             if random_test_funcs:
-                training_loss_object = random_fourier_moments_loss
+                if mean_std_training_loss:
+                    training_loss_object = fourier_mean_std_loss
+                else:
+                    training_loss_object = random_fourier_moments_loss
+                testing_loss_object = random_fourier_moments_loss
             else:
                 training_loss_object = fourier_moments_loss
+                testing_loss_object = fourier_moments_loss
         else:
             print("No such net type")
             exit(1)
@@ -51,4 +61,4 @@ def create_model(output_dim):
 
     model.compile(optimizer='adam', loss=training_loss_object)
 
-    return model, optimizer, training_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object
+    return model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object

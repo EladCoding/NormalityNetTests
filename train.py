@@ -1,5 +1,6 @@
 from model import *
 train_loss_saver = tf.keras.metrics.Mean(name='train_loss')
+test_loss_saver = tf.keras.metrics.Mean(name='basic_test_loss')
 shapiro_wilk_loss_saver = tf.keras.metrics.Mean(name='shapiro_wilk_loss')
 mean_loss_saver = tf.keras.metrics.Mean(name='mean_loss')
 std_loss_saver = tf.keras.metrics.Mean(name='std_loss')
@@ -25,11 +26,13 @@ def train_step(images, labels, model, optimizer, training_loss_object):
 
 
 @tf.function
-def test_step(images, labels, model, optimizer, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object):
+def test_step(images, labels, model, optimizer, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object):
     # training=False is only needed if there are layers with different
     # behavior during training versus inference (e.g. Dropout).
     predictions = model(images, training=False)
-    sw_loss = shapiro_wilk_loss_object(labels, predictions)
+    t_loss = testing_loss_object(predictions, NUMBER_OF_TEST_FUNCS, OUTPUT_DIM)
+    test_loss_saver(t_loss)
+    sw_loss = shapiro_wilk_loss_object(labels[:32], predictions[:32])
     shapiro_wilk_loss_saver(sw_loss)
     m_loss = mean_loss_object(predictions)
     mean_loss_saver(m_loss)
@@ -39,26 +42,22 @@ def test_step(images, labels, model, optimizer, shapiro_wilk_loss_object, mean_l
     kurtosis_loss_saver(k_loss)
 
 
-def train(model, optimizer, training_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds, test_ds):
+def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds, test_ds):
 
     train_loss_log_dir = 'logs/train_loss'
+    test_loss_log_dir = 'logs/basic_test_loss'
     shapiro_wilk_loss_log_dir = 'logs/shapiro_wilk_loss'
     mean_loss_log_dir = 'logs/mean_loss'
     std_loss_log_dir = 'logs/std_loss'
     kurtosis_loss_log_dir = 'logs/kurtosis_loss'
     train_loss_summary_writer = tf.summary.create_file_writer(train_loss_log_dir)
+    test_loss_summary_writer = tf.summary.create_file_writer(test_loss_log_dir)
     shapiro_wilk_loss_summary_writer = tf.summary.create_file_writer(shapiro_wilk_loss_log_dir)
     mean_loss_summary_writer = tf.summary.create_file_writer(mean_loss_log_dir)
     std_loss_summary_writer = tf.summary.create_file_writer(std_loss_log_dir)
     kurtosis_loss_summary_writer = tf.summary.create_file_writer(kurtosis_loss_log_dir)
 
     for epoch in range(EPOCHS):
-        # Reset the metrics at the start of the next epoch
-        train_loss_saver.reset_states()
-        shapiro_wilk_loss_saver.reset_states()
-        mean_loss_saver.reset_states()
-        std_loss_saver.reset_states()
-        kurtosis_loss_saver.reset_states()
 
         cur_counter = total_counter = 0
         for images, labels in train_ds:
@@ -68,10 +67,12 @@ def train(model, optimizer, training_loss_object, shapiro_wilk_loss_object, mean
                 total_counter += cur_counter
 
                 for test_images, test_labels in test_ds:
-                    test_step(test_images, test_labels, model, optimizer, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object)
+                    test_step(test_images, test_labels, model, optimizer, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object)
 
                 with train_loss_summary_writer.as_default():
                     tf.summary.scalar('loss', train_loss_saver.result(), step=total_counter)
+                with test_loss_summary_writer.as_default():
+                    tf.summary.scalar('loss', test_loss_saver.result(), step=total_counter)
                 with shapiro_wilk_loss_summary_writer.as_default():
                     tf.summary.scalar('loss', shapiro_wilk_loss_saver.result(), step=total_counter)
                 with mean_loss_summary_writer.as_default():
@@ -93,6 +94,7 @@ def train(model, optimizer, training_loss_object, shapiro_wilk_loss_object, mean
                 print(
                     f'Counter {total_counter}, '
                     f'Train Loss: {train_loss_saver.result()}.\n'
+                    f'Basic Test Loss: {test_loss_saver.result()}, '
                     f'Shapiro-wilk Loss: {shapiro_wilk_loss_saver.result()}, '
                     f'mean: {test_mean}, '
                     f'std: {test_std}, '
@@ -100,5 +102,13 @@ def train(model, optimizer, training_loss_object, shapiro_wilk_loss_object, mean
                 )
 
                 cur_counter = 0
+
+                # Reset the metrics at the end of each test step
+                train_loss_saver.reset_states()
+                shapiro_wilk_loss_saver.reset_states()
+                test_loss_saver.reset_states()
+                mean_loss_saver.reset_states()
+                std_loss_saver.reset_states()
+                kurtosis_loss_saver.reset_states()
 
     return model

@@ -18,7 +18,7 @@ def load_training_data(input_dim, output_dim):
     return train_ds, test_ds, x_test, x_train
 
 
-def evaluate_model(model, optimizer, training_loss_object, shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds, test_ds, output_dim,
+def evaluate_model(model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds, test_ds, output_dim,
                    x_test, x_train, loss_function_name):
     print(loss_function_name)
 
@@ -32,7 +32,7 @@ def evaluate_model(model, optimizer, training_loss_object, shapiro_wilk_object, 
     plt.savefig(title)
     plt.clf()
 
-    model = train(model, optimizer, training_loss_object,
+    model = train(model, optimizer, training_loss_object, testing_loss_object,
                   shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds, test_ds)
 
     if output_dim == 1:
@@ -61,13 +61,18 @@ def evaluate_model(model, optimizer, training_loss_object, shapiro_wilk_object, 
 
 
 def main():
+    if DIR_TITLE is not None:
+        if not os.path.isdir(DIR_TITLE):
+            os.mkdir(DIR_TITLE)
+        os.chdir(DIR_TITLE)
+
     now = datetime.now()
     date_time = now.strftime("%Y_%m_%d_%H_%M_%S")
     os.mkdir(date_time)
     os.chdir(date_time)
 
     train_ds, test_ds, x_test, x_train = load_training_data(INPUT_DIM, OUTPUT_DIM)
-    model, optimizer, general_training_loss_object, shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object = create_model(OUTPUT_DIM)
+    model, optimizer, general_training_loss_object, testing_loss_object, shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object = create_model(OUTPUT_DIM)
     model(x_train[0:1])
     model.save_weights('model.h5')
 
@@ -98,7 +103,7 @@ def main():
         os.mkdir(loss_function_name)
         os.chdir(loss_function_name)
 
-        evaluate_model(model, optimizer, training_loss_object, shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds,
+        evaluate_model(model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds,
                        test_ds, OUTPUT_DIM, x_test, x_train, loss_function_name)
         os.chdir('../')
         model.load_weights('model.h5')

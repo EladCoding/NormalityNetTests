@@ -27,7 +27,7 @@ def Gaussianity_loss(dist, number_of_funcs, R = None):
     # v = tf.random.uniform((1, 1, number_of_funcs), minval=FOURIER_MIN_FREQ, maxval=FOURIER_MAX_FREQ)
     v = tf.random.uniform((1, 1, number_of_funcs), minval=-1, maxval=1) * 5
 
-    print(v)
+    # print(v)
     mv = tf.tile(v,[dims0,1,1])
     print(mv)
 
@@ -36,16 +36,19 @@ def Gaussianity_loss(dist, number_of_funcs, R = None):
 
     dist = tf.matmul(dist,mv)
     print(dist)
+    breakpoint()
     dist_cos = tf.reduce_mean(tf.cos(dist),axis=0)
-    print(dist_cos)
+    # print(dist_cos)
     dist_sin = tf.reduce_mean(tf.sin(dist),axis=0)
 
     tar = tf.matmul(tf.ones((dims1,1)),tf.reshape(v**2,(1,number_of_funcs)))
     tar = tf.exp(-0.5*tar)
+    # print(tar)
 
     fac = tf.sqrt(dims0f) * 0.2
 
     fourier_loss = fac * tf.reduce_mean(tf.square(tar - dist_cos) + tf.square(dist_sin - 0))
+    print(fourier_loss)
 
     return fourier_loss
 

@@ -30,7 +30,7 @@ def test_step(images, labels, model, optimizer, testing_loss_object, shapiro_wil
     # training=False is only needed if there are layers with different
     # behavior during training versus inference (e.g. Dropout).
     predictions = model(images, training=False)
-    t_loss = testing_loss_object(predictions, NUMBER_OF_TEST_FUNCS, OUTPUT_DIM)
+    t_loss = testing_loss_object(dist=predictions, number_of_funcs=NUMBER_OF_TEST_FUNCS, out_dim=OUTPUT_DIM)
     test_loss_saver(t_loss)
     sw_loss = shapiro_wilk_loss_object(labels[:32], predictions[:32])
     shapiro_wilk_loss_saver(sw_loss)

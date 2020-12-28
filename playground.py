@@ -7,11 +7,13 @@ OUTPUT_DIM = 2
 
 # Optimization parameters
 NUMBER_OF_TEST_FUNCS = 100
+# NUMBER_OF_ROTATIONS = OUTPUT_DIM
+NUMBER_OF_ROTATIONS = 1
 TRAINING_BATCH_SIZE = 2000
 NORMAL_POINTS_NUM = 32000
 CRITICAL_NORMAL_PART_RADIUS = 3.0
 TESTING_BATCH_SIZE = 2000
-TRAINING_BATCHES = 100000
+TRAINING_BATCHES = 20000
 TRAIN_SIZE = TRAINING_BATCH_SIZE * TRAINING_BATCHES
 TEST_SIZE = 100 * TESTING_BATCH_SIZE
 
@@ -22,12 +24,15 @@ TEST_PLOT_EXAMPLES_SIZE = 320
 # Playground
 # tf
 # net_type = 'gaus'
-# DIR_TITLE = 'gaus_model_128_128_128_lr_0_005_mean_std_freq_normal_dim4'
 net_type = 'fourier'
-DIR_TITLE = 'fourier_model_128_128_128_lr_0_005_mean_std_freq_5uniform_dim4'
-# DIR_TITLE = None
+# DIR_TITLE = 'gaus_model_128_128_128_lr_0_005_mean_std_freq_normal_dim4'
+# DIR_TITLE = 'fourier_model_128_128_128_lr_0_005_mean_std_freq_5uniform_dim4'
+# DIR_TITLE = 'fourier_model_128_128_128_lr_0_005_freq_5uniform_dim16'
+DIR_TITLE = None
 random_test_funcs = True
-mean_std_training_loss = True
+mean_std_training_loss = False
+# sin_1_training_loss = False
+# SIN_1_FACTOR = 100
 shapiro_wilk_training_loss = False
 FOURIER_MIN_FREQ = 0.3
 FOURIER_MAX_FREQ = 0.8

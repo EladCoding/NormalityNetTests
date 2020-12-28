@@ -96,9 +96,8 @@ def main():
                                                                                        OUTPUT_DIM)
         else:
             loss_function_name = test_func.__name__
-            my_test_funcs = test_func()
-            training_loss_object = lambda y_true, y_pred: general_training_loss_object(y_true, y_pred,
-                                                                                       my_test_funcs)
+            # my_test_funcs = test_func()
+            training_loss_object = lambda y_true, y_pred: general_training_loss_object(out_dim=OUTPUT_DIM, dist=y_pred, number_of_funcs=NUMBER_OF_TEST_FUNCS)
 
         os.mkdir(loss_function_name)
         os.chdir(loss_function_name)

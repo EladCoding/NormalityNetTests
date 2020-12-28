@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from np_utils import *
-import raanan_funcs
+import r_funcs
 
 NORMAL_POINTS = tf.random.normal(shape=(NORMAL_POINTS_NUM, OUTPUT_DIM), dtype=tf.float32)
 
@@ -135,15 +135,33 @@ def calc_fourier_cos_moment(dist, omega):
 
 
 @tf.function
-def fourier_moments_loss(y_true, y_pred, my_test_funcs):
-    y_true = tf.cast(y_true, tf.float32)
-    y_pred = tf.cast(y_pred, tf.float32)
-    loss = 0
-    for (omega, cos_moment) in my_test_funcs:
-        omega = tf.cast(omega, tf.float32)
-        moment = tf.cast(moment, tf.float32)
-        loss += calc_fourier_moment_diff(y_pred, omega, cos_moment)
+def fourier_moments_loss(out_dim, dist, number_of_funcs):
+    step_size = 2.0 * np.pi / CRITICAL_NORMAL_PART_RADIUS
+    start = 0
+    print(number_of_funcs)
+    omegas_list = [start + i * step_size for i in range(number_of_funcs)]
+    print(omegas_list)
+    omegas = tf.constant(omegas_list, shape=(1, 1, number_of_funcs))
+    print(omegas)
+
+    y_pred = tf.cast(dist, tf.float32)
+
+    loss = mean_loss(y_pred)
+    loss += std_loss(y_pred)
+    loss = 0.1 * loss
+
+    loss += r_funcs.Gaussianity_loss(y_pred, NUMBER_OF_TEST_FUNCS, r_funcs.rand_rot(), v=omegas)
     return loss
+
+
+    # y_true = tf.cast(y_true, tf.float32)
+    # y_pred = tf.cast(y_pred, tf.float32)
+    # loss = 0
+    # for (omega, cos_moment) in my_test_funcs:
+    #     omega = tf.cast(omega, tf.float32)
+    #     moment = tf.cast(moment, tf.float32)
+    #     loss += calc_fourier_moment_diff(y_pred, omega, cos_moment)
+    # return loss
 
 
 @tf.function
@@ -159,16 +177,15 @@ def gaus_moments_loss(y_true, y_pred, my_test_funcs):
 
 
 @tf.function
-def normal_distributed_gaus_moments_loss(y_pred, number_of_funcs, output_dim):
-    y_pred = tf.cast(y_pred, tf.float32)
-    y_pred = tf.cast(y_pred, tf.float32)
+def normal_distributed_gaus_moments_loss(dist, number_of_funcs, out_dim):
+    dist = tf.cast(dist, tf.float32)
 
     loss = 0
 
     for i in range(number_of_funcs):
-        mu = tf.random.normal(shape=(1, output_dim))
+        mu = tf.random.normal(shape=(1, out_dim))
         sigma = (tf.square(tf.math.reduce_euclidean_norm(mu)) + 0.7) / 9
-        loss += tf.square(calc_gaus_moment(y_pred, mu, sigma) - calc_gaus_moment(NORMAL_POINTS, mu, sigma))
+        loss += tf.square(calc_gaus_moment(dist, mu, sigma) - calc_gaus_moment(NORMAL_POINTS, mu, sigma))
     return loss
 
 
@@ -213,21 +230,24 @@ def kurtosis_loss(dist):
 
 
 @tf.function
-def fourier_mean_std_loss(y_pred, number_of_funcs, output_dim):
-    y_pred = tf.cast(y_pred, tf.float32)
+def fourier_mean_std_loss(dist, number_of_funcs, out_dim):
+    dist = tf.cast(dist, tf.float32)
 
-    loss = mean_loss(y_pred)
-    loss += std_loss(y_pred)
+    loss = mean_loss(dist)
+    loss += std_loss(dist)
     loss = 0.1 * loss
 
-    loss += random_fourier_moments_loss(y_pred, number_of_funcs, output_dim)
+    loss += random_fourier_moments_loss(dist, number_of_funcs, out_dim)
     return loss
 
 
 @tf.function
-def random_fourier_moments_loss(y_pred, number_of_funcs, output_dim):
-    y_pred = tf.cast(y_pred, tf.float32)
-    return raanan_funcs.Gaussianity_loss(y_pred, number_of_funcs, raanan_funcs.rand_rot())
+def random_fourier_moments_loss(dist, number_of_funcs, out_dim):
+    dist = tf.cast(dist, tf.float32)
+    loss = 0
+    for i in range(NUMBER_OF_ROTATIONS):
+        loss += r_funcs.Gaussianity_loss(dist, number_of_funcs, r_funcs.rand_rot())
+    return loss
 
     # for i in range(number_of_funcs):
     #     omega = tf.random.uniform((1, 1), minval=FOURIER_MIN_FREQ, maxval=FOURIER_MAX_FREQ)

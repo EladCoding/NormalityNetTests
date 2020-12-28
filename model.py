@@ -22,7 +22,7 @@ class MyModel(Model):
 def create_model(output_dim):
     # define model architecture
     model = MyModel(output_dim)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.005)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.003)
     # optimizer = tf.keras.optimizers.SGD(learning_rate=0.015)
 
     # compile model

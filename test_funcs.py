@@ -23,7 +23,7 @@ def growing_grid(number_of_funcs=NUMBER_OF_TEST_FUNCS):
     return test_funcs
 
 
-def get_uniform_np_test_funcs(sigma, number_of_funcs):
+def get_uniform_np_test_funcs(sigma, number_of_funcs, dim):
     test_funcs = []
     grid = get_uniform_grid(number_of_funcs, CRITICAL_NORMAL_PART_RADIUS)
     for (x, y) in grid:

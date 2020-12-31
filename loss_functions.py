@@ -2,8 +2,11 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from np_utils import *
 import r_funcs
+from scipy.stats import norm
+import test_funcs
 
-NORMAL_POINTS = tf.random.normal(shape=(NORMAL_POINTS_NUM, OUTPUT_DIM), dtype=tf.float32)
+NORMAL_POINTS = tf.random.normal(shape=(NORMAL_POINTS_NUM, OUTPUT_DIM), dtype=tf.float32) # TODO check maybe use np
+NP_NORMAL_POINTS = np.random.normal(size=(NORMAL_POINTS_NUM, OUTPUT_DIM))
 
 n = 32
 m = n // 2
@@ -106,6 +109,7 @@ def my_multi_loss(y_true, y_pred):
 
 @tf.function
 def calc_gaus_moment(y_pred, mu, sigma):
+    y_pred = tf.cast(y_pred, tf.float32)
     x = tf.subtract(y_pred, mu)
     x = tf.reduce_sum(tf.square(x), axis=1)
     x = tf.divide(x, 2 * (sigma**2))
@@ -152,16 +156,6 @@ def fourier_moments_loss(out_dim, dist, number_of_funcs):
 
     loss += r_funcs.Gaussianity_loss(y_pred, NUMBER_OF_TEST_FUNCS, r_funcs.rand_rot(), v=omegas)
     return loss
-
-
-    # y_true = tf.cast(y_true, tf.float32)
-    # y_pred = tf.cast(y_pred, tf.float32)
-    # loss = 0
-    # for (omega, cos_moment) in my_test_funcs:
-    #     omega = tf.cast(omega, tf.float32)
-    #     moment = tf.cast(moment, tf.float32)
-    #     loss += calc_fourier_moment_diff(y_pred, omega, cos_moment)
-    # return loss
 
 
 @tf.function
@@ -225,8 +219,66 @@ def kurtosis_loss(dist):
     mean = tf.reduce_mean(dist, axis=0)
     std = tf.math.reduce_std(dist, axis=0)
     kurtosis = tf.reduce_mean(((dist - mean) / std) ** 4, axis=0)
-    kurtosis_loss = tf.reduce_sum(tf.square(kurtosis - 3))
+    # kurtosis_loss = tf.reduce_sum(tf.square(kurtosis - 3))
+    kurtosis_loss = tf.reduce_sum(tf.abs(kurtosis - 3))
     return kurtosis_loss
+
+
+@tf.function
+def cube_loss(dist, radius=None, means=None):
+    if radius is None:
+        radius = np.sqrt(OUTPUT_DIM) * 0.25
+    if means is None:
+        means = np.arange(-CRITICAL_NORMAL_PART_RADIUS, CRITICAL_NORMAL_PART_RADIUS + 0.1, 0.1)
+    loss = 0
+    for mean in means:
+        is_inside_1 = dist < mean + radius
+        is_inside_2 = dist > mean - radius
+        is_inside = tf.math.logical_and(is_inside_1, is_inside_2)
+        is_inside = tf.reduce_all(is_inside, axis=1)
+        perc_inside = tf.reduce_mean(tf.cast(is_inside, tf.float32))
+
+        target_perc_inside = norm.cdf(mean + radius) - norm.cdf(mean - radius)
+        target_perc_inside = np.power(target_perc_inside, OUTPUT_DIM)
+
+        loss += tf.abs(perc_inside - target_perc_inside)
+        # loss += tf.square(perc_inside - target_perc_inside)
+    return loss / len(means)
+
+
+@tf.function
+def ball_loss(dist, radius=None, means=None):
+    if radius is None:
+        radius = np.sqrt(OUTPUT_DIM) * 0.25
+    if means is None:
+        means = np.arange(-CRITICAL_NORMAL_PART_RADIUS, CRITICAL_NORMAL_PART_RADIUS + 0.1, 0.1)
+    loss = 0
+    for mean in means:
+        is_inside = dist - mean
+        is_inside = tf.norm(is_inside, axis=1)
+        is_inside = is_inside < radius
+        perc_inside = tf.reduce_mean(tf.cast(is_inside, tf.float32))
+
+        target_is_inside = NP_NORMAL_POINTS - mean
+        target_is_inside = np.linalg.norm(target_is_inside, axis=1)
+        target_is_inside = target_is_inside < radius
+        target_perc_inside = np.mean(target_is_inside.astype(np.float32))
+
+        loss += tf.abs(perc_inside - target_perc_inside)
+        # loss += tf.square(perc_inside - target_perc_inside)
+    return loss / len(means)
+
+
+@tf.function
+def gaus_loss(dist, sigma=None, means=None):
+    if means is None:
+        means = np.arange(-CRITICAL_NORMAL_PART_RADIUS, CRITICAL_NORMAL_PART_RADIUS + 0.1, 0.1)
+    if sigma is None:
+        sigma = 0.1
+    my_test_funcs = []
+    for mean in means:
+        my_test_funcs.append((mean, sigma, np_calc_gaus_moment(NP_NORMAL_POINTS, mean, sigma).astype(np.float32)))
+    return gaus_moments_loss(NORMAL_POINTS, dist, my_test_funcs) / len(means)
 
 
 @tf.function
@@ -248,13 +300,3 @@ def random_fourier_moments_loss(dist, number_of_funcs, out_dim):
     for i in range(NUMBER_OF_ROTATIONS):
         loss += r_funcs.Gaussianity_loss(dist, number_of_funcs, r_funcs.rand_rot())
     return loss
-
-    # for i in range(number_of_funcs):
-    #     omega = tf.random.uniform((1, 1), minval=FOURIER_MIN_FREQ, maxval=FOURIER_MAX_FREQ)
-    #     # tf.print(omega)
-    #     theta = tf.random.uniform((1, 1))
-    #     omega = rotate(tf.constant([1.0, 0.0]) * omega, theta)
-    #     # tf.print(omega)
-    #     target_cos_moment = calc_fourier_cos_moment(NORMAL_POINTS, omega)
-    #     loss += (tf.square(calc_fourier_moment_diff(y_pred, omega, target_cos_moment)))
-    # return loss

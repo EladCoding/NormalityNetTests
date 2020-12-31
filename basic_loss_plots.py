@@ -1,5 +1,7 @@
 import itertools
 
+import seaborn as sns
+
 from np_utils import *
 from playground import *
 
@@ -31,9 +33,13 @@ def generate_fourier_loss_curve(grid_type, normal_data, number_of_funcs, differe
     loss_list = []
     std_list = []
 
-    possible_omega_values = np.arange(0, 1.1, 0.1)
-    possible_omegas = list(itertools.permutations(possible_omega_values, dim))
-    possible_omega = range(len(possible_omegas))
+    possible_omega_values = np.arange(0, 2.1, 0.1)
+    # step_size = 0.1
+    # start = 0
+    # possible_omega_values = [start + i * step_size for i in range(number_of_funcs)]
+    # possible_omegas = list(itertools.permutations(possible_omega_values, dim))
+    possible_omegas = possible_omega_values
+    # possible_omega = range(len(possible_omegas))
 
     for omegas in possible_omegas:
         print(omegas)
@@ -56,9 +62,10 @@ def generate_fourier_loss_curve(grid_type, normal_data, number_of_funcs, differe
                     print("std 0 and loss != 0")
                     exit(1)
 
-        print(std_omega_loss)
+        # print(std_omega_loss)
 
-    return (possible_omega, loss_list, std_list, grid_type + "_loss_curve")
+    return (possible_omegas, loss_list, std_list, grid_type + "_loss_curve")
+    # return (possible_omegas, loss_list, std_list, grid_type + "_loss_curve")
 
 
 def calc_moments_loss(sampled_points, sigma, grid, expected_moments, type):
@@ -78,13 +85,13 @@ def calc_moments_loss(sampled_points, sigma, grid, expected_moments, type):
 
 def generate_uniform_loss_curve(grid_type, normal_data, number_of_funcs, different_distribution_func, dim):
     uniform_grid = [[0]*dim]
-    possible_sigmas = np.arange(0.15, 5.0, 0.1)
+    possible_sigmas = np.arange(0.2, 5.0, 0.1)
 
     loss_list = []
     std_list = []
 
     for sigma in possible_sigmas:
-        print(sigma)
+        # print(sigma)
         cur_sigma_loss = []
         expected_moments = np_calc_gaus_grid_moments(normal_data, uniform_grid, sigma)
 
@@ -123,6 +130,16 @@ def main():
             normal_possible_omegas, normal_loss_list, normal_std_list, normal_curve_label = generate_fourier_loss_curve("fourier", normal_data, NUMBER_OF_TEST_FUNCS, normal_lambda, dist_dim)
             loss_list = [loss_list[i] - normal_loss_list[i] for i in range(len(loss_list))]
         curves_list.append((possible_omegas, loss_list, std_list, curve_label))
+        # edge_size = int(np.sqrt(len(possible_omegas)))
+        # sns_list = np.zeros(shape=(edge_size, edge_size))
+        # counter = 0
+        # for i in range(edge_size):
+        #     for j in range(edge_size):
+        #         sns_list[i,j] = loss_list[counter]
+        #         counter += 1
+        # ax = sns.heatmap(sns_list, annot=True)
+        # plt.show()
+
 
     print("------------------------------Drawing Normal loss plot------------------------------")
     plot_graph(curves_list, "losses", x_label_name, "loss value")

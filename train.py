@@ -5,6 +5,9 @@ shapiro_wilk_loss_saver = tf.keras.metrics.Mean(name='shapiro_wilk_loss')
 mean_loss_saver = tf.keras.metrics.Mean(name='mean_loss')
 std_loss_saver = tf.keras.metrics.Mean(name='std_loss')
 kurtosis_loss_saver = tf.keras.metrics.Mean(name='kurtosis_loss')
+cube_loss_saver = tf.keras.metrics.Mean(name='cube_loss')
+ball_loss_saver = tf.keras.metrics.Mean(name='ball_loss')
+gaus_loss_saver = tf.keras.metrics.Mean(name='gaus_loss')
 EPOCHS = 1
 
 
@@ -26,7 +29,8 @@ def train_step(images, labels, model, optimizer, training_loss_object):
 
 
 @tf.function
-def test_step(images, labels, model, optimizer, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object):
+def test_step(images, labels, model, optimizer, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object,
+              std_loss_object, kurtosis_loss_object, cube_loss_object, ball_loss_object, gaus_loss_object):
     # training=False is only needed if there are layers with different
     # behavior during training versus inference (e.g. Dropout).
     predictions = model(images, training=False)
@@ -40,9 +44,17 @@ def test_step(images, labels, model, optimizer, testing_loss_object, shapiro_wil
     std_loss_saver(st_loss)
     k_loss = kurtosis_loss_object(predictions)
     kurtosis_loss_saver(k_loss)
+    c_loss = cube_loss_object(predictions)
+    cube_loss_saver(c_loss)
+    b_loss = ball_loss_object(predictions)
+    ball_loss_saver(b_loss)
+    g_loss = gaus_loss_object(predictions)
+    gaus_loss_saver(g_loss)
 
 
-def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object, train_ds, test_ds):
+
+def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_loss_object,
+          mean_loss_object, std_loss_object, kurtosis_loss_object, cube_loss_object, ball_loss_object, gaus_loss_object, train_ds, test_ds):
 
     train_loss_log_dir = 'logs/train_loss'
     test_loss_log_dir = 'logs/basic_test_loss'
@@ -50,12 +62,18 @@ def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_w
     mean_loss_log_dir = 'logs/mean_loss'
     std_loss_log_dir = 'logs/std_loss'
     kurtosis_loss_log_dir = 'logs/kurtosis_loss'
+    cube_loss_log_dir = 'logs/cube_loss'
+    ball_loss_log_dir = 'logs/ball_loss'
+    gaus_loss_log_dir = 'logs/gaus_loss'
     train_loss_summary_writer = tf.summary.create_file_writer(train_loss_log_dir)
     test_loss_summary_writer = tf.summary.create_file_writer(test_loss_log_dir)
     shapiro_wilk_loss_summary_writer = tf.summary.create_file_writer(shapiro_wilk_loss_log_dir)
     mean_loss_summary_writer = tf.summary.create_file_writer(mean_loss_log_dir)
     std_loss_summary_writer = tf.summary.create_file_writer(std_loss_log_dir)
     kurtosis_loss_summary_writer = tf.summary.create_file_writer(kurtosis_loss_log_dir)
+    cube_loss_summary_writer = tf.summary.create_file_writer(cube_loss_log_dir)
+    ball_loss_summary_writer = tf.summary.create_file_writer(ball_loss_log_dir)
+    gaus_loss_summary_writer = tf.summary.create_file_writer(gaus_loss_log_dir)
 
     for epoch in range(EPOCHS):
 
@@ -67,7 +85,9 @@ def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_w
                 total_counter += cur_counter
 
                 for test_images, test_labels in test_ds:
-                    test_step(test_images, test_labels, model, optimizer, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object)
+                    test_step(test_images, test_labels, model, optimizer, testing_loss_object, shapiro_wilk_loss_object,
+                              mean_loss_object, std_loss_object, kurtosis_loss_object, cube_loss_object,
+                              ball_loss_object, gaus_loss_object)
 
                 with train_loss_summary_writer.as_default():
                     tf.summary.scalar('loss', train_loss_saver.result(), step=total_counter)
@@ -81,6 +101,12 @@ def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_w
                     tf.summary.scalar('loss', std_loss_saver.result(), step=total_counter)
                 with kurtosis_loss_summary_writer.as_default():
                     tf.summary.scalar('loss', kurtosis_loss_saver.result(), step=total_counter)
+                with cube_loss_summary_writer.as_default():
+                    tf.summary.scalar('loss', cube_loss_saver.result(), step=total_counter)
+                with ball_loss_summary_writer.as_default():
+                    tf.summary.scalar('loss', ball_loss_saver.result(), step=total_counter)
+                with gaus_loss_summary_writer.as_default():
+                    tf.summary.scalar('loss', gaus_loss_saver.result(), step=total_counter)
 
                 test_output = model(test_images)
                 plt.clf()
@@ -99,6 +125,9 @@ def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_w
                     f'mean: {test_mean}, '
                     f'std: {test_std}, '
                     f'kurtosis: {test_kurtosis}.'
+                    f'cube loss: {cube_loss_saver.result()}.'
+                    f'ball loss: {ball_loss_saver.result()}.'
+                    f'gaus loss: {gaus_loss_saver.result()}.'
                 )
 
                 cur_counter = 0
@@ -110,5 +139,8 @@ def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_w
                 mean_loss_saver.reset_states()
                 std_loss_saver.reset_states()
                 kurtosis_loss_saver.reset_states()
+                cube_loss_saver.reset_states()
+                ball_loss_saver.reset_states()
+                gaus_loss_saver.reset_states()
 
     return model

@@ -58,7 +58,11 @@ def create_model(output_dim):
         mean_loss_object = mean_loss
         std_loss_object = std_loss
         kurtosis_loss_object = kurtosis_loss
+        cube_loss_object = cube_loss
+        ball_loss_object = ball_loss
+        gaus_loss_object = gaus_loss
 
     model.compile(optimizer='adam', loss=training_loss_object)
 
-    return model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_loss_object, mean_loss_object, std_loss_object, kurtosis_loss_object
+    return model, optimizer, training_loss_object, testing_loss_object, shapiro_wilk_loss_object,\
+           mean_loss_object, std_loss_object, kurtosis_loss_object, cube_loss_object, ball_loss_object, gaus_loss_object

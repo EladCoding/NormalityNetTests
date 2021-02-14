@@ -178,7 +178,7 @@ def normal_distributed_gaus_moments_loss(dist, number_of_funcs, out_dim):
 
     for i in range(number_of_funcs):
         mu = tf.random.normal(shape=(1, out_dim))
-        sigma = (tf.square(tf.math.reduce_euclidean_norm(mu)) + 0.7) / 9
+        sigma = ((tf.square(tf.math.reduce_euclidean_norm(mu)) + 0.7) / 9) * (np.sqrt(out_dim/2))
         loss += tf.square(calc_gaus_moment(dist, mu, sigma) - calc_gaus_moment(NORMAL_POINTS, mu, sigma))
     return loss
 

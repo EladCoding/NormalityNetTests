@@ -119,15 +119,15 @@ def train(model, optimizer, training_loss_object, testing_loss_object, shapiro_w
 
                 print(
                     f'Counter {total_counter}, '
-                    f'Train Loss: {train_loss_saver.result()}.\n'
-                    f'Basic Test Loss: {test_loss_saver.result()}, '
-                    f'Shapiro-wilk Loss: {shapiro_wilk_loss_saver.result()}, '
+                    f'Train Loss: {train_loss_saver.result()}, '
+                    f'Basic Test Loss: {test_loss_saver.result()}.\n'
                     f'mean: {test_mean}, '
-                    f'std: {test_std}, '
-                    f'kurtosis: {test_kurtosis}.'
-                    f'cube loss: {cube_loss_saver.result()}.'
-                    f'ball loss: {ball_loss_saver.result()}.'
-                    f'gaus loss: {gaus_loss_saver.result()}.'
+                    f'std: {test_std}.\n'
+                    f'Shapiro-wilk Loss: {shapiro_wilk_loss_saver.result()}, '
+                    f'kurtosis: {test_kurtosis}.\n'
+                    f'cube loss: {cube_loss_saver.result()}, '
+                    f'ball loss: {ball_loss_saver.result()}, '
+                    f'gaus loss: {gaus_loss_saver.result()}.\n'
                 )
 
                 cur_counter = 0

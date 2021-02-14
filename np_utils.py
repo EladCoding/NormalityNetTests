@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from playground import *
+from scipy.stats import norm
+
+
+uniform_grid_name = "uniform_gaus_grid"
+normal_distributed_grid_name = "normal_distributed_gaus_grid"
 
 
 def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_max=None, y_min=None, y_max=None):
@@ -10,21 +15,26 @@ def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_m
     # plt.yscale('log')
     for i, (curve_x, curve_y, std, label) in enumerate(curves_list):
         if i == 0:
-            line_color = 'g'
-        elif i == 1:
             line_color = 'b'
         elif i == 1:
+            line_color = 'g'
+        elif i == 2:
+            line_color = 'c'
+        elif i == 3:
+            line_color = 'm'
+        elif i == 4:
             line_color = 'y'
-        elif i == 1:
-            line_color = 'p'
-        elif i == 1:
-            line_color = 'o'
+        elif i == 5:
+            line_color = 'r'
         else:
-            "too many curves"
+            print("too many curves")
             exit(1)
 
         if divide_by_std:
-            plt.plot(curve_x, curve_y, 'o-' + line_color, label=label, markersize=4)
+            if len(curve_x) == 1:
+                plt.axhline(curve_y, color=line_color, label=label, markersize=4)
+            else:
+                plt.plot(curve_x, curve_y, 'o-' + line_color, label=label, markersize=4)
         else:
             plt.errorbar(curve_x, curve_y, std, fmt='o-'+line_color, label=label, ecolor='red', markersize=4)
         # plt.plot(curve_x, curve_y, 'ro', label=label)
@@ -37,17 +47,43 @@ def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_m
 
 
 def np_calc_gaus_moment(y_pred, mu, sigma):
+    if sigma == 1:
+        print("!")
     x = y_pred - mu
-    x = np.power(np.linalg.norm(x, axis=1), 2)
+    x = np.square(np.linalg.norm(x, axis=1))
     x = np.divide(x, 2 * (sigma**2))
     x = np.exp(-x)
     return np.mean(x, axis=0)
+
+
+def scipy_calc_gaus_moment_expectation(orig_mu, orig_sigma, dist_sigma, dist_mu, dim):
+    def cur_moment(x):
+        x = x - orig_mu
+        x = np.power(np.sqrt(np.square(x)), 2)
+        x = np.divide(x, 2 * (orig_sigma ** 2))
+        x = np.exp(-x)
+        return np.mean(x)
+    return norm.expect(cur_moment, lb=-10, ub=10, scale=dist_sigma, loc=dist_mu) ** dim
+
+
+def scipy_calc_gaus_moments_expectations(mu_list, orig_sigma, dist_sigma, dist_mu, dim):
+    expectations = []
+    for mu in mu_list:
+        if len(mu) > 1:
+            print("make sure that mu len can be more then 1!")
+            # exit(1)
+        else:
+            mu = mu[0]
+        real_mean = scipy_calc_gaus_moment_expectation(mu, orig_sigma, dist_sigma, dist_mu, dim)
+        expectations.append(real_mean)
+    return expectations
 
 
 def np_calc_fourier_moment(sampled_data, omega):
     x = np.inner(sampled_data, omega)
     x = np.cos(x)
     x = np.mean(x, axis=0)
+    x = np.mean(x)
     return x
 
 
@@ -87,7 +123,7 @@ def sample_one_dim_mixture_of_normal_distributions(batch_size, dim):
     return sampled_matrix
 
 
-def get_uniform_grid(total_points, radius):
+def get_uniform_grid(total_points, radius, dim):
     grid_n = int((np.sqrt(total_points))) - 1
     dist_between_points = (radius * 2) / grid_n
     grid_x = np.arange(-radius, radius + dist_between_points, dist_between_points)

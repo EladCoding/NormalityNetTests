@@ -57,16 +57,24 @@ def different_distribution_samples(batch_size):
 # General
 dist_dim = 8
 RUNNING_REPETITIONS = 100
-divide_by_std = False
+# Only one of these (or none)
+std_divided_by_mean_loss = False
+mean_sub_by_std_loss = False
+median_loss = True
+monotonic_loss = False
+sigma_monotonic = 0.5
+omega_monotonic = 2.15
+
+ignore_negative = True
 relative_error = True
 kick_zero_divide_by_zero = True
 subtract_normal_results = False
 small_gaussian_test_function_with_real_mean = False # currently work ok for gaus, and fourier look at gaus with sigma omega/2
-small_gaussian_test_function_without_real_mean = True # currently work ok for gaus, and fourier look at gaus with sigma omega/2
+small_gaussian_test_function_without_real_mean = False # currently work ok for gaus, and fourier look at gaus with sigma omega/2
 SMALL_GAUS_MU = [0.1,0,0,0,0,0,0,0]
 SMALL_GAUS_SIGMA = 0.1 # if None, sigma/2 taken
 # Fourier
-run_fourier = False
+run_fourier = True
 # Gaus
 run_gaus = True
 uniform_grid = True # currently only mean=0

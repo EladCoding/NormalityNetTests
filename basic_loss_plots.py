@@ -10,11 +10,18 @@ def generate_fourier_loss_curve(grid_type, normal_data, number_of_funcs, differe
         print("Fourier can't calculate small gaussian real mean right now!")
         # exit(1)
 
-    possible_omega_values = np.arange(0, 3.1, 0.1)
-    possible_omegas = possible_omega_values
+    if monotonic_loss:
+        possible_omegas = np.arange(0, 1.1, 0.1)
+    else:
+        possible_omegas = np.arange(0, 3.1, 0.1)
+    running_omegas = tqdm(possible_omegas)
 
-    for omegas in tqdm(possible_omegas):
-        expected_moments = np_calc_fourier_moments(normal_data, [omegas])
+    for omegas in running_omegas:
+        if monotonic_loss:
+            cur_omegas = omega_monotonic
+        else:
+            cur_omegas = omegas
+        expected_moments = np_calc_fourier_moments(normal_data, [cur_omegas])
         cur_omegas_loss = []
         for i in range(RUNNING_REPETITIONS):
             if small_gaussian_test_function_without_real_mean:
@@ -24,25 +31,31 @@ def generate_fourier_loss_curve(grid_type, normal_data, number_of_funcs, differe
                     small_sigma = SMALL_GAUS_SIGMA
                 moment_loss = small_gaussian_loss(None, [omegas], dim, small_sigma, type='fourier')
             else:
-                different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE)
-                moment_loss = calc_moments_loss(different_distribution_data, None, [omegas], expected_moments, type='fourier')
+                if monotonic_loss:
+                    same_distribution_data = sample_normal_distribution_with_different_kurtosis(
+                        alpha=1.0, dim=dist_dim, batch_size=int((omegas * TRAINING_BATCH_SIZE))) # TODO it isn't sigma
+                    different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE - int((omegas * TRAINING_BATCH_SIZE)))
+                    different_distribution_data = np.concatenate([same_distribution_data, different_distribution_data])
+                else:
+                    different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE)
+                moment_loss = calc_moments_loss(different_distribution_data, None, [cur_omegas], expected_moments, type='fourier')
             cur_omegas_loss.append(moment_loss)
+        if median_loss:
+            mean_omega_loss = np.median(np.abs(cur_omegas_loss))
+        else:
+            mean_omega_loss = np.abs(np.mean(cur_omegas_loss))
 
-        mean_omega_loss = np.abs(np.mean(cur_omegas_loss))
         loss_list.append(mean_omega_loss)
         std_omega_loss = np.std(cur_omegas_loss)
         std_list.append(std_omega_loss)
 
-        if divide_by_std:
-            if std_omega_loss != 0:
-                loss_list[-1] /= std_omega_loss
-            else:
-                if loss_list[-1] != 0:
-                    if small_gaussian_test_function_without_real_mean and omegas == 0:
-                        loss_list[-1] = 0
-                        continue
-                    print("std 0 and loss != 0")
-                    exit(1)
+        if std_divided_by_mean_loss:
+            if loss_list[-1] != 0:
+                loss_list[-1] = 1 - (std_omega_loss / loss_list[-1])
+        elif mean_sub_by_std_loss:
+            loss_list[-1] -= 1.96 * std_omega_loss
+        if ignore_negative:
+            loss_list[-1] = max(loss_list[-1], 0)
 
     return (possible_omegas, loss_list, std_list, grid_type + "_loss_curve")
 
@@ -77,6 +90,7 @@ def calc_moments_loss(sampled_points, sigma, grid, expected_moments, type):
             moments_diff = [(expected_moments[i] - cur_moments[i]) / expected_moments[i] for i in range(len(grid))]
     else:
         moments_diff = [expected_moments[i] - cur_moments[i] for i in range(len(grid))]
+
     return np.mean(moments_diff)
 
 
@@ -103,20 +117,27 @@ def generate_guas_loss_curve_by_grid(grid_type, normal_data, number_of_funcs, di
     else:
         print("No such grid")
         exit(1)
-    possible_sigmas = np.arange(0.1, 5.0, 0.1)
+    if monotonic_loss:
+        possible_sigmas = np.arange(0, 1.1, 0.1)
+    else:
+        possible_sigmas = np.arange(0.1, 5.0, 0.1)
+    running_sigmas = tqdm(possible_sigmas)
 
     loss_list = []
     std_list = []
 
-    for sigma in tqdm(possible_sigmas):
-
+    for sigma in running_sigmas:
         cur_sigma_loss = []
         if grid_type == uniform_grid_name:
             if not small_gaussian_test_function_with_real_mean:
-                if real_expected_value:
-                    expected_moments = scipy_calc_gaus_moments_expectations(my_grid, sigma)
+                if monotonic_loss:
+                    cur_sigma = sigma_monotonic
                 else:
-                    expected_moments = np_calc_gaus_grid_moments(normal_data, my_grid, sigma)
+                    cur_sigma = sigma
+                if real_expected_value:
+                    expected_moments = scipy_calc_gaus_moments_expectations(my_grid, cur_sigma)
+                else:
+                    expected_moments = np_calc_gaus_grid_moments(normal_data, my_grid, cur_sigma)
 
         for i in range(RUNNING_REPETITIONS):
             if grid_type == normal_distributed_grid_name:
@@ -134,12 +155,22 @@ def generate_guas_loss_curve_by_grid(grid_type, normal_data, number_of_funcs, di
                     small_sigma = SMALL_GAUS_SIGMA
                 moment_loss = small_gaussian_loss(sigma, my_grid, dim, small_sigma, type='gaus')
             else:
-                different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE)
-                moment_loss = calc_moments_loss(different_distribution_data, sigma,
+                if monotonic_loss:
+                    same_distribution_data = sample_normal_distribution_with_different_kurtosis(
+                        alpha=1.0, dim=dist_dim, batch_size=int((sigma * TRAINING_BATCH_SIZE))) # TODO it isn't sigma
+                    different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE - int((sigma * TRAINING_BATCH_SIZE)))
+                    different_distribution_data = np.concatenate([same_distribution_data, different_distribution_data])
+                else:
+                    different_distribution_data = different_distribution_func(TRAINING_BATCH_SIZE)
+                moment_loss = calc_moments_loss(different_distribution_data, cur_sigma,
                                                         my_grid, expected_moments, type='gaus')
             cur_sigma_loss.append(moment_loss)
 
-        mean_sigma_loss = np.abs(np.mean(cur_sigma_loss))
+        if median_loss:
+            mean_sigma_loss = np.median(np.abs(cur_sigma_loss))
+        else:
+            mean_sigma_loss = np.abs(np.mean(cur_sigma_loss))
+
         loss_list.append(mean_sigma_loss)
         if small_gaussian_test_function_with_real_mean:
             std_sigma_loss = calc_std_by_real_mean(cur_sigma_loss, sigma, my_grid, dist_sigma=small_sigma, dist_mu=SMALL_GAUS_MU, dim=dim)
@@ -148,8 +179,13 @@ def generate_guas_loss_curve_by_grid(grid_type, normal_data, number_of_funcs, di
 
         std_list.append(std_sigma_loss)
 
-        if divide_by_std:
-            loss_list[-1] /= std_sigma_loss
+        if std_divided_by_mean_loss:
+            if loss_list[-1] != 0:
+                loss_list[-1] = 1 - (std_sigma_loss / loss_list[-1])
+        elif mean_sub_by_std_loss:
+            loss_list[-1] -= 1.96 * std_sigma_loss
+        if ignore_negative:
+            loss_list[-1] = max(loss_list[-1], 0)
 
     return (possible_sigmas, loss_list, std_list, grid_type + "_loss_curve")
 
@@ -191,19 +227,30 @@ def generate_WAE_loss_curve(batch_size, number_of_funcs, different_distribution_
         print("WAE can't calculate small gaussian real mean right now!")
         # exit(1)
     # possible_sigmas = [np.sqrt(2.0*dim)]
-    possible_sigmas = np.arange(0.1, 5.0, 0.1)
+    if monotonic_loss:
+        possible_sigmas = np.arange(0, 1.1, 0.1)
+    else:
+        possible_sigmas = np.arange(0.1, 5.0, 0.1)
+    running_sigmas = tqdm(possible_sigmas)
 
     loss_list = []
     std_list = []
 
-    for sigma in tqdm(possible_sigmas):
+    for sigma in running_sigmas:
         cur_sigma_loss = []
         for i in range(RUNNING_REPETITIONS):
             target_distribution_data = np.random.normal(size=(number_of_funcs, dim))
             if small_gaussian_test_function_without_real_mean:
                 different_distribution_data = np.random.normal(loc=SMALL_GAUS_MU, scale=SMALL_GAUS_SIGMA, size=(batch_size, dim))
             else:
-                different_distribution_data = different_distribution_func(batch_size)
+                if monotonic_loss:
+                    same_distribution_data = sample_normal_distribution_with_different_kurtosis(
+                        alpha=1.0, dim=dist_dim, batch_size=int((sigma * batch_size))) # TODO it isn't sigma
+                    different_distribution_data = different_distribution_func(batch_size - int((sigma * batch_size)))
+                    different_distribution_data = np.concatenate([same_distribution_data, different_distribution_data])
+                else:
+                    different_distribution_data = different_distribution_func(batch_size)
+
             if type == "WAE_RBF":
                 cur_loss = WAE_RBF_LOSS(Z=target_distribution_data, Z_tilda=different_distribution_data, sigma=sigma)
             elif type == "WAE_POISSON":
@@ -217,8 +264,13 @@ def generate_WAE_loss_curve(batch_size, number_of_funcs, different_distribution_
         loss_list.append(mean_sigma_loss)
         std_sigma_loss = np.std(cur_sigma_loss)
         std_list.append(std_sigma_loss)
-        if divide_by_std:
-            loss_list[-1] /= std_sigma_loss
+        if std_divided_by_mean_loss:
+            if loss_list[-1] != 0:
+                loss_list[-1] = 1 - (std_sigma_loss / loss_list[-1])
+        elif mean_sub_by_std_loss:
+            loss_list[-1] -= 1.96 * std_sigma_loss
+        if ignore_negative:
+            loss_list[-1] = max(loss_list[-1], 0)
 
     return (possible_sigmas, loss_list, std_list, type + "_loss_curve")
 

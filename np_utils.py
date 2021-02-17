@@ -30,14 +30,15 @@ def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_m
             print("too many curves")
             exit(1)
 
-        if divide_by_std:
+        if std_divided_by_mean_loss or mean_sub_by_std_loss:
             if len(curve_x) == 1:
                 plt.axhline(curve_y, color=line_color, label=label, markersize=4)
             else:
                 plt.plot(curve_x, curve_y, 'o-' + line_color, label=label, markersize=4)
         else:
-            plt.errorbar(curve_x, curve_y, std, fmt='o-'+line_color, label=label, ecolor='red', markersize=4)
-        # plt.plot(curve_x, curve_y, 'ro', label=label)
+            # plt.errorbar(curve_x, curve_y, std, fmt='o-'+line_color, label=label, ecolor='red', markersize=4)
+            plt.plot(curve_x, curve_y, 'o-'+line_color, label=label, markersize=4)
+            # plt.plot(curve_x, curve_y, 'ro', label=label)
         if axis:
             plt.axis([x_min, x_max, y_min, y_max])
     plt.legend(loc="upper right")
@@ -47,8 +48,6 @@ def plot_graph(curves_list, title, x_label, y_label, axis=False, x_min=None, x_m
 
 
 def np_calc_gaus_moment(y_pred, mu, sigma):
-    if sigma == 1:
-        print("!")
     x = y_pred - mu
     x = np.square(np.linalg.norm(x, axis=1))
     x = np.divide(x, 2 * (sigma**2))
